@@ -1,0 +1,6 @@
+ofxChatGPT
+ofxComponent
+ofxComponentUI
+ofxGoogleIME
+ofxMidi
+ofxOsc
