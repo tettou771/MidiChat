@@ -126,18 +126,25 @@ void MidiChat::onUpdate(){
         ofxChatGPT::ErrorCode errorCode;
         tie(gptResponse, errorCode) = chat.getMessage();
         
-        ofJson newGPTMsg;
-        newGPTMsg["message"]["role"] = "assistant";
-        newGPTMsg["message"]["content"] = gptResponse;
-
-        ofLogVerbose("MidiChat") << "GPT: " << newGPTMsg;
-
-        chatView->addMessage(newGPTMsg);
-        
-        // If the message has sequence, apply to SequencerView
-        auto lastMsg = chatView->getLastMessageObject();
-        if (lastMsg && lastMsg->hasMidi) {
-            sequencerView->setNextSequence(lastMsg->midiJson);
+        // 成功していたらオブジェクトを追加する
+        if (errorCode == ofxChatGPT::Success) {
+            ofJson newGPTMsg;
+            newGPTMsg["message"]["role"] = "assistant";
+            newGPTMsg["message"]["content"] = gptResponse;
+            
+            ofLogVerbose("MidiChat") << "GPT: " << newGPTMsg;
+            
+            chatView->addMessage(newGPTMsg);
+            
+            // If the message has sequence, apply to SequencerView
+            auto lastMsg = chatView->getLastMessageObject();
+            if (lastMsg && lastMsg->hasMidi) {
+                sequencerView->setNextSequence(lastMsg->midiJson);
+            }
+        }
+        // 失敗していたらログを出す
+        else {
+            ofLogError("MidiChat") << "ofxChatGPT has an error. " << ofxChatGPT::getErrorMessage(errorCode);
         }
     }
 }

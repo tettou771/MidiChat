@@ -97,16 +97,13 @@ MessageObject::MessageObject(ofJson json) {
             
             extractJsonParts(jsonString, beforeJson, json, afterJson);
             if (json.length() > 0) {
-                data = ofJson::parse(json);
-                parseSuccess = true;
-                
-                // 前後の文字列も一応メッセージとして入れておく
-                message = beforeJson + "<JSON>" + afterJson + "\n";
-            }
-            else {
-                // JSON形式ではないので、そのままメッセージとして解釈
-                message = raw["message"]["content"].get<string>();
-                valid = true;
+                try {
+                    data = ofJson::parse(json);
+                    parseSuccess = true;
+                }
+                catch (exception e) {
+                    ofLogError("MessageObject") << "JSON parse error " << e.what();
+                }
             }
         }
         
@@ -136,6 +133,12 @@ MessageObject::MessageObject(ofJson json) {
                 ofLogError("MessageObject") << "JSON error";
             }
         }
+        else {
+            // JSON形式ではないので、そのままメッセージとして解釈
+            message = raw["message"]["content"].get<string>();
+            valid = true;
+        }
+
     }
     else {
 		ofLogError("MessageObject") << "JSON is not valid: " << data;

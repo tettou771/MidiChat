@@ -22,7 +22,12 @@ Thumbnail::Thumbnail(ofJson &j) {
 void Thumbnail::onDraw() {
     if (!fbo.isAllocated()) return;
     
-    ofSetColor(255);
+    ofSetColor(0, 100, 100);
+    ofFill();
+    ofDrawRectangle(0, 0, getWidth(), getHeight());
+
+    ofSetColor(50, 150, 150);
+    ofNoFill();
     ofDrawRectangle(0, 0, getWidth(), getHeight());
 
     ofSetColor(255);
