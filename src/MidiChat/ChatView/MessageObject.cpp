@@ -101,7 +101,7 @@ MessageObject::MessageObject(ofJson json) {
                 parseSuccess = true;
                 
                 // 前後の文字列も一応メッセージとして入れておく
-                message = beforeJson + "\n<JSON>\n" + afterJson + "\n";
+                message = beforeJson + "<JSON>" + afterJson + "\n";
             }
             else {
                 // JSON形式ではないので、そのままメッセージとして解釈

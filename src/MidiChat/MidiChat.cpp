@@ -1,12 +1,78 @@
 #include "MidiChat.h"
 #include "prompt.h"
 
+Chat::Chat() {
+    
+}
+
+void Chat::setup() {
+    // setup chatGPT
+    string apiKey;
+    ofJson configJson = ofLoadJson("config.json");
+    apiKey = configJson["apiKey"].get<string>();
+    chatGPT.setup(apiKey);
+
+    vector<string> models;
+    ofxChatGPT::ErrorCode err;
+    tie(models, err) = chatGPT.getModelList();
+    ofLogNotice("Chat") << "Available OpenAI GPT models:";
+    for (auto model : models) {
+        // GPT系のモデルだけをリストアップ
+        if (ofIsStringInString(model, "gpt")) {
+            ofLogNotice("Chat") << model;
+        }
+    }
+    
+    // send system message
+    chatGPT.setSystem(GPT_Prompt());
+    chatGPT.setModel("gpt-3.5-turbo");
+    //chatGPT.setModel("gpt-4");
+}
+
+void Chat::threadedFunction() {
+    auto response = chatGPT.chatWithHistory(requestingMessage);
+    
+    mutex.lock();
+    availableMessages.push_back(response);
+    mutex.unlock();
+}
+
+void Chat::chatWithHistoryAsync(string msg) {
+    if (isThreadRunning()) return;
+    requestingMessage = msg;
+    ofLogNotice("Chat") << "chatWithHistoryAsync " << msg;
+    startThread();
+}
+
+bool Chat::isWaiting() {
+    return isThreadRunning();
+}
+
+bool Chat::hasMessage() {
+    return availableMessages.size() > 0;
+}
+
+tuple<string, ofxChatGPT::ErrorCode> Chat::getMessage() {
+    mutex.lock();
+    if (availableMessages.size() > 0) {
+        ofLogNotice("Chat") << "getMessage";
+        auto msg = availableMessages.front();
+        availableMessages.erase(availableMessages.begin());
+        return msg;
+    } else {
+        return tuple<string, ofxChatGPT::ErrorCode>("", ofxChatGPT::UnknownError);
+    }
+    mutex.unlock();
+}
+
+
 MidiChat::MidiChat() {
     
 }
 
 void MidiChat::onSetup(){
-    ofSetLogLevel(OF_LOG_VERBOSE);
+    //ofSetLogLevel(OF_LOG_VERBOSE);
+    ofSetLogLevel(OF_LOG_NOTICE);
     
     // show in scroll view
     chatView = make_shared<ChatView>();
@@ -19,17 +85,8 @@ void MidiChat::onSetup(){
     sequencerView = make_shared<SequencerView>();
     sequencerView->setRect(ofRectangle(1200, 100, 700, 1000));
     addChild(sequencerView);
-        
-    // setup chatGPT
-    string apiKey;
-    ofJson configJson = ofLoadJson("config.json");
-    apiKey = configJson["apiKey"].get<string>();
-    chatGPT.setup(apiKey);
     
-    // send system message
-    chatGPT.setSystem(GPT_Prompt());
-    chatGPT.setModel("gpt-3.5-turbo");
-    //chatGPT.setModel("gpt-4");
+    chat.setup();
     
     /*
     vector<string> models;
@@ -64,7 +121,25 @@ void MidiChat::onSetup(){
 }
 
 void MidiChat::onUpdate(){
-    
+    if (chat.hasMessage()) {
+        string gptResponse;
+        ofxChatGPT::ErrorCode errorCode;
+        tie(gptResponse, errorCode) = chat.getMessage();
+        
+        ofJson newGPTMsg;
+        newGPTMsg["message"]["role"] = "assistant";
+        newGPTMsg["message"]["content"] = gptResponse;
+
+        ofLogVerbose("MidiChat") << "GPT: " << newGPTMsg;
+
+        chatView->addMessage(newGPTMsg);
+        
+        // If the message has sequence, apply to SequencerView
+        auto lastMsg = chatView->getLastMessageObject();
+        if (lastMsg && lastMsg->hasMidi) {
+            sequencerView->setNextSequence(lastMsg->midiJson);
+        }
+    }
 }
 
 void MidiChat::onDraw(){
@@ -82,48 +157,45 @@ void MidiChat::onDraw(){
 
 }
 
+void MidiChat::onKeyPressed(ofKeyEventArgs &key) {
+    if (key.key == OF_KEY_RETURN && ofGetKeyPressed(OF_KEY_CONTROL)) {
+        // IMEで改行されないようにnullを入れておく
+        key.key = '\0';
+        
+        // Ignore if text is empty.
+        if (ime.getString() == "") {
+            return;
+        }
+        
+        // 返信待ちなら送信できないタイミング
+        if (chat.isWaiting()) return;
+
+        // メッセージを送信してIMEをクリア
+        sendMessage();
+    }
+}
+
 void MidiChat::onLocalMatrixChanged() {
     setWidth(ofGetWidth());
     setHeight(ofGetHeight());
     ime.setPos(20, getHeight() - 200);
 }
 
-void MidiChat::onKeyPressed(ofKeyEventArgs &key) {
-    if (key.key == OF_KEY_RETURN && ofGetKeyPressed(OF_KEY_CONTROL)) {
-        // Ignore if text is empty.
-        if (ime.getString() == "") {
-            return;
-        }
-        
-        // send to chatgpt
-        ofxChatGPT::ErrorCode errorCode;
-        string message = ime.getString();
+void MidiChat::sendMessage() {
+    // send to chatgpt
+    ofxChatGPT::ErrorCode errorCode;
+    string message = ime.getString();
 
-        // chat data
-        ofJson newUserMsg;
-        newUserMsg["message"]["role"] = "user";
-        newUserMsg["message"]["content"] = message;
-        chatView->addMessage(newUserMsg);
-        
-        ofLogVerbose("MidiChat") << "User: " << newUserMsg;
-
-        string gptResponse;
-        tie(gptResponse, errorCode) = chatGPT.chatWithHistory(newUserMsg.dump());
-        
-        ofJson newGPTMsg;
-        newGPTMsg["message"]["role"] = "assistant";
-        newGPTMsg["message"]["content"] = gptResponse;
-        
-        ofLogVerbose("MidiChat") << "GPT: " << newGPTMsg;
-
-        chatView->addMessage(newGPTMsg);
-        
-        // If the message has image, apply to SequencerView
-        auto lastMsg = chatView->getLastMessageObject();
-        if (lastMsg && lastMsg->hasMidi) {
-            sequencerView->setNextSequence(lastMsg->midiJson);
-        }
-
-        ime.clear();
-    }
+    // chat data
+    ofJson newUserMsg;
+    newUserMsg["message"]["role"] = "user";
+    newUserMsg["message"]["content"] = message;
+    chatView->addMessage(newUserMsg);
+    
+    ofLogVerbose("MidiChat") << "User: " << newUserMsg;
+    
+    // メッセージを送信
+    chat.chatWithHistoryAsync(message);
+    
+    ime.clear();
 }

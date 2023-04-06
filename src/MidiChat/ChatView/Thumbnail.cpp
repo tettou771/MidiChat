@@ -26,7 +26,8 @@ void Thumbnail::onDraw() {
     ofDrawRectangle(0, 0, getWidth(), getHeight());
 
     ofSetColor(255);
-    fbo.draw(0, 0, getWidth(), getHeight());    
+    fbo.draw(0, 0, getWidth(), getHeight());
+    ofDrawBitmapString("MIDI\nDATA", 4, (getHeight() - 28) / 2 + 15);
 }
 
 void Thumbnail::onMousePressedOverComponent(ofMouseEventArgs &mouse) {
