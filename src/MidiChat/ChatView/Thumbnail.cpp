@@ -1,4 +1,4 @@
-﻿#include "Thumbnail.h"
+#include "Thumbnail.h"
 
 ofEvent<ofJson> Thumbnail::selectedEvents;
 
@@ -11,12 +11,22 @@ Thumbnail::Thumbnail(ofJson &j) {
     fbo.allocate(s);
     fbo.begin();
     ofClear(100);
+    ofSetColor(200);
+    ofNoFill();
+    ofDrawRectangle(0, 0, fbo.getWidth()-1, fbo.getHeight()-1);
     fbo.end();
+    
+    json = j;
 }
 
 void Thumbnail::onDraw() {
     if (!fbo.isAllocated()) return;
-    fbo.draw(0, 0, getWidth(), getHeight());
+    
+    ofSetColor(255);
+    ofDrawRectangle(0, 0, getWidth(), getHeight());
+
+    ofSetColor(255);
+    fbo.draw(0, 0, getWidth(), getHeight());    
 }
 
 void Thumbnail::onMousePressedOverComponent(ofMouseEventArgs &mouse) {

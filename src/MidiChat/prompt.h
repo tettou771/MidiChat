@@ -1,11 +1,11 @@
-﻿#pragma once
+#pragma once
 #include "ofMain.h"
 
 string GPT_Prompt() {
-	return R"(あなたはAPIを通じてユーザーと話しています。常に以下に示す JSON の形式で回答してください。
+	return R"(Please provide the following JSON data without any additional text or explanation: (説明や追加のテキストなしで、以下のJSONデータを提供してください。)
     
 {
-  "message": "きらきら星のシーケンスデータです。",
+  "message": "ユーザーに宛てたメッセージ",
   "midi": {
   "sequence_length": 4800,
   "notes": [
@@ -32,7 +32,6 @@ string GPT_Prompt() {
 ,
   "error": ""
 }
-
 
 message: あなたのメッセージ。ここに書かないと、ユーザーは読めません。
 

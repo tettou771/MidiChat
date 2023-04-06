@@ -1,4 +1,4 @@
-﻿#include "MessageObject.h"
+#include "MessageObject.h"
 
 ofTrueTypeFont TextArea::font;
 
@@ -14,7 +14,8 @@ void TextArea::onUpdate() {
 	float elapsedTime = ofGetElapsedTimef() - startTime;
 
 	// 1秒あたりに表示する文字数
-	float cps = 20.0; // char / sec
+    // 5秒以内で表示できるように文字数に比例するが、最低でも 20 にしておく
+    cps = MAX(20, (int)u32message.length() / 5);
 
 	// 今あるべき文字数
 	int expectedNum = MIN((int)u32message.length(), cps * elapsedTime);
@@ -86,42 +87,57 @@ MessageObject::MessageObject(ofJson json) {
 		// メッセージがJSONになっているかどうか確認
 		string jsonString = raw["message"]["content"];
 		bool parseSuccess = false;
-		try {
-			data = ofJson::parse(jsonString);
-			parseSuccess = true;
-
-			// JSONとして解釈できたら次に進む
-			if (parseSuccess) {
-				valid = true;
-
-				// MIDIデータがあるかどうか確認
-				if (data.count("midi") > 0 && data["midi"].is_object()) {
-					midiJson = data["midi"];
-					if (midiJson.count("sequence_length") > 0 && midiJson["sequence_length"].is_number() &&
-						midiJson.count("notes") > 0 && midiJson["notes"].is_array()) {
-						hasMidi = true;
-					}
-				}
-
-				if (data.count("message") > 0 && data["message"].is_string()) {
-					message = data["message"].get<string>();
-				}
-				if (data.count("error") > 0 && data["error"].is_string() && data["error"].get<string>() != "") {
-					message += "\nERROR: " + data["error"].get<string>();
-				}
-			}
-			else {
-				ofLogError("MessageObject") << "Data is not valid: " << data;
-			}
-		}
-		catch (std::exception& e) {
-			// JSON形式ではないので、そのままメッセージとして解釈
-			message = raw["message"]["content"].get<string>();
-			valid = true;
-		}
-
-	}
-	else {
+        try {
+            data = ofJson::parse(jsonString);
+            parseSuccess = true;
+        } catch (exception e) {
+            // jsonStringをパースできなかったら、前後にコメントが入っている可能性があるので
+            // それらを削除してもう一度トライする
+            std::string beforeJson, json, afterJson;
+            
+            extractJsonParts(jsonString, beforeJson, json, afterJson);
+            if (json.length() > 0) {
+                data = ofJson::parse(json);
+                parseSuccess = true;
+                
+                // 前後の文字列も一応メッセージとして入れておく
+                message = beforeJson + "\n<JSON>\n" + afterJson + "\n";
+            }
+            else {
+                // JSON形式ではないので、そのままメッセージとして解釈
+                message = raw["message"]["content"].get<string>();
+                valid = true;
+            }
+        }
+        
+        // JSONとして解釈できたら次に進む
+        if (parseSuccess) {
+            ofLogNotice() << "JSON parse OK";
+            valid = true;
+            try{
+                // MIDIデータがあるかどうか確認
+                if (data.count("midi") > 0 && data["midi"].is_object()) {
+                    midiJson = data["midi"];
+                    if (midiJson.count("sequence_length") > 0 && midiJson["sequence_length"].is_number() &&
+                        midiJson.count("notes") > 0 && midiJson["notes"].is_array()) {
+                        hasMidi = true;
+                    }
+                }
+                
+                if (data.count("message") > 0 && data["message"].is_string()) {
+                    message += data["message"].get<string>();
+                }
+                if (data.count("error") > 0 && data["error"].is_string() && data["error"].get<string>() != "") {
+                    message += "\nERROR: " + data["error"].get<string>();
+                }
+            }
+            catch (std::exception& e) {
+                // JSONとしてパースできたのに、エラーが出た時
+                ofLogError("MessageObject") << "JSON error";
+            }
+        }
+    }
+    else {
 		ofLogError("MessageObject") << "JSON is not valid: " << data;
 	}
 }
@@ -186,4 +202,19 @@ void MessageObject::onDraw() {
 	// サムネイルが左に入るので、右に寄せて描画
 	ofSetColor(180);
 	TextArea::font.drawString(role, 100, 40);
+}
+
+void MessageObject::extractJsonParts(const std::string& input, std::string& beforeJson, std::string& json, std::string& afterJson) {
+    std::size_t begin = input.find_first_of('{');
+    std::size_t end = input.find_last_of('}');
+    
+    if (begin != std::string::npos && end != std::string::npos && begin < end) {
+        beforeJson = input.substr(0, begin);
+        json = input.substr(begin, end - begin + 1);
+        afterJson = input.substr(end + 1);
+    } else {
+        beforeJson = input;
+        json = "";
+        afterJson = "";
+    }
 }

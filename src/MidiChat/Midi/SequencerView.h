@@ -2,6 +2,7 @@
 #include "ofxComponent.h"
 #include "ofxMidi.h"
 #include "ofxOsc.h"
+#include "../ChatView/Thumbnail.h"
 
 using namespace ofxComponent;
 
@@ -23,6 +24,75 @@ public:
     vector<unsigned char> midiMessage;
 };
 
+// 音符を描画するクラス
+class Onpu : public ofxComponentBase {
+public:
+    void onStart() override {
+        updateSize();
+    }
+    
+    void updateSize() {
+        auto p = getParent();
+        if (!p) return;
+        ofRectangle rect;
+        rect.x = p->getWidth() * (float)begin->timeMs / (float)sequenceLengthMs;
+        rect.width = p->getWidth() * ((float)end->timeMs - (float)begin->timeMs) / (float)sequenceLengthMs;
+        
+        // ピッチあたりの高さ
+        float pitchHeight = p->getHeight() / pitchNum;
+        
+        rect.y = p->getHeight() - (begin->pitch - pitchOffset) * pitchHeight;
+        rect.height = pitchHeight;
+
+        int margin = 1;
+        rect.x += margin;
+        rect.y += margin;
+        rect.width -= margin*2;
+        rect.height -= margin*2;
+        setRect(rect);
+    }
+    
+    void onDraw() override {
+        // 音符の色相はchannelに応じる
+        float h = 255 * (137 * begin->channel % 360) / 360;
+        // 音符の明度は再生中かどうかによる
+        float b = isPlaying ? 140 : 100;
+        // 彩度は固定
+        float s = 200;
+        auto onpuColor = ofColor::fromHsb(h, s, b);
+        
+        ofSetColor(onpuColor);
+        float r = MIN(MIN(6, getWidth()/2), getHeight()/2);
+        ofDrawRectRounded(0, 0, getWidth(), getHeight(), r);
+
+        // 音符の種類
+        ofSetColor(200);
+        stringstream name;
+        name << "P " << (int)begin->pitch;
+        name << "\nV " << (int)begin->velocity;
+        name << "\nC " << (int)begin->channel;
+        ofDrawBitmapString(name.str(), 2, 15);
+    }
+        
+    Note *begin, *end;
+    float sequenceLengthMs;
+    
+    // 今鳴らしている最中かどうか（描画用のフラグ）
+    bool isPlaying = false;
+    
+    // 鍵盤の表示範囲
+    static const int pitchNum = 80;
+    static const int pitchOffset = 30;
+};
+
+class SeekBar : public ofxComponentBase {
+public:
+    void onDraw() override {
+        ofSetColor(200, 0, 0);
+        ofDrawLine(0, 0, 0, getHeight());
+    }
+};
+
 class SequencerView : public ofxComponentBase, ofThread {
 public:
 	SequencerView();
@@ -42,12 +112,13 @@ public:
     float phase;
 
     // MIDIデータをofJsonで加えるときのメソッド
-    void setSequence(ofJson mj);
+    void setNextSequence(ofJson& mj);
+    void setCurrentSequence(ofJson& mj);
 
     int getSequenceCount() { return sequenceCount; }
     bool getSentThisFrame() { bool b = sentOsc; sentOsc = false; return b; }
     static const int quantizeNum = 16;
-
+    
 private:
     float now; // 今の時刻
     float diff; // 前回からの差分の時刻
@@ -71,19 +142,28 @@ private:
     void midiLoop();
 
     // MIDIのシーケンスファイル
-    ofJson midiJson;
+    ofJson midiJson, nextMidiJson;
+    bool hasNextMidiJson = false;
     float sequenceLengthMs;
     vector<Note> notes;
     ofMutex notesMutex; // 排他制御
-
-public:
-
-    // OSC関連
+    
+    // MIDIのシーケンスを次に変えるためのメソッド
+    // ループの最後にやる
+    void changeToNextSequence();
+    ofMutex sequenceMutex;
+    
 private:
+    // OSC関連
     bool oscEnabled;
     bool sentOsc;
     ofxOscSender oscSender;
     ofxOscReceiver oscReceiver;
     void oscLoop();
+    
+    // 描画関連
+    shared_ptr<SeekBar> seekBar;
+    vector<shared_ptr<Onpu> > onpus;
+    void updateDrawObjectsPosotion();
 };
 

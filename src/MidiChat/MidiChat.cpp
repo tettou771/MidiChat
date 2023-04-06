@@ -17,7 +17,7 @@ void MidiChat::onSetup(){
     addChild(scrollView);
     
     sequencerView = make_shared<SequencerView>();
-    sequencerView->setRect(ofRectangle(1200, 100, 700, 700));
+    sequencerView->setRect(ofRectangle(1200, 100, 700, 1000));
     addChild(sequencerView);
         
     // setup chatGPT
@@ -121,7 +121,7 @@ void MidiChat::onKeyPressed(ofKeyEventArgs &key) {
         // If the message has image, apply to SequencerView
         auto lastMsg = chatView->getLastMessageObject();
         if (lastMsg && lastMsg->hasMidi) {
-            sequencerView->setSequence(lastMsg->midiJson);
+            sequencerView->setNextSequence(lastMsg->midiJson);
         }
 
         ime.clear();

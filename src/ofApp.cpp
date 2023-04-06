@@ -1,5 +1,4 @@
-﻿#include "ofApp.h"
-
+#include "ofApp.h"
 #include "MidiChat/MidiChat.h"
 
 //--------------------------------------------------------------
