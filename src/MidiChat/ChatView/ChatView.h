@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "ofxComponent.h"
 #include "MessageObject.h"
 #include "ofxChatGPT.h"
@@ -15,6 +15,7 @@ public:
     void addMessage(ofJson message);
     void updateMessagesPosition();
     shared_ptr<MessageObject> getLastMessageObject();
+    void deleteLastAssistantMessage();
     
 private:
     vector<shared_ptr<MessageObject> > messages;

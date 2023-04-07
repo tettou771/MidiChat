@@ -1,36 +1,11 @@
 #pragma once
 #include "ofxComponentUI.h"
-#include "ofxChatGPT.h"
+#include "ChatThread.h"
 #include "Midi/SequencerView.h"
 #include "ChatView/ChatView.h"
 #include "ofxGoogleIME.h"
 
 using namespace ofxComponent;
-
-class Chat : public ofThread {
-public:
-    Chat();
-    
-    void setup();
-    void threadedFunction() override;
-    
-    // check waiting for GPT response
-    bool isWaiting();
-    bool hasMessage();
-    
-    // リクエストを送信
-    void chatWithHistoryAsync(string msg);
-    
-    // メッセージがあれば、それをgetできる
-    // getされたものはリストから削除される
-    tuple<string, ofxChatGPT::ErrorCode> getMessage();
-    
-private:
-    ofxChatGPT chatGPT;
-    string requestingMessage;
-    ofMutex mutex;
-    vector<tuple<string, ofxChatGPT::ErrorCode> > availableMessages;
-};
 
 class MidiChat: public ofxComponentBase {
 public:
@@ -44,11 +19,17 @@ public:
     shared_ptr<SequencerView> sequencerView;
     shared_ptr<ChatView> chatView;
     
-    //
+    // メッセージを送信してIMEをクリア
     void sendMessage();
+    
+    // 応答がないときに再送するためのメソッド
+    // すでにassistantから返信があった場合は、それは削除される
+    void regenerate();
 
-    Chat chat;
+    ChatThread chat;
     
     ofxGoogleIME ime;
+    
+    shared_ptr<InfoObject> regenerateButton = nullptr;
 private:
 };

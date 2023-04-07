@@ -44,6 +44,7 @@ void TextArea::onUpdate() {
 
 void TextArea::onDraw() {
 	// サムネイルが左に入るので、右に寄せて描画
+    ofSetColor(color);
 	font.drawString(message, 0, font.getSize());
 }
 
@@ -76,7 +77,7 @@ void TextArea::setStringDelay(string& str) {
 MessageObject::MessageObject(ofJson json) {
 	raw = json;
 	valid = false;
-	hasMidi = false;
+    itHasMidi = false;
 
 	if (raw.count("message") > 0 && raw["message"].is_object() &&
 		raw["message"].count("role") > 0 && raw["message"]["role"].is_string() &&
@@ -91,7 +92,7 @@ MessageObject::MessageObject(ofJson json) {
             data = ofJson::parse(jsonString);
             parseSuccess = true;
         } catch (exception e) {
-            // jsonStringをパースできなかったら、前後にコメントが入っている可能性があるので
+            //  jsonStringをパースできなかったら、前後にコメントが入っている可能性があるので
             // それらを削除してもう一度トライする
             std::string beforeJson, json, afterJson;
             
@@ -117,7 +118,7 @@ MessageObject::MessageObject(ofJson json) {
                     midiJson = data["midi"];
                     if (midiJson.count("sequence_length") > 0 && midiJson["sequence_length"].is_number() &&
                         midiJson.count("notes") > 0 && midiJson["notes"].is_array()) {
-                        hasMidi = true;
+                        itHasMidi = true;
                     }
                 }
                 
@@ -146,7 +147,7 @@ MessageObject::MessageObject(ofJson json) {
 }
 
 void MessageObject::onStart() {
-	if (hasMidi) {
+	if (hasMidi()) {
 		// make thumbnail
 		auto thumb = make_shared<Thumbnail>(midiJson);
 		thumb->setRect(ofRectangle(10, 10, 60, 60));
@@ -155,6 +156,7 @@ void MessageObject::onStart() {
 
 	// jsonをもとに、テキストオブジェクトを作る
 	textArea = make_shared<TextArea>();
+    textArea->color = ofColor(255);
 	float margin = 15;
 	textArea->setRect(ofRectangle(100, 70, getWidth() - 100 - margin, 0));
 
@@ -220,4 +222,51 @@ void MessageObject::extractJsonParts(const std::string& input, std::string& befo
         json = "";
         afterJson = "";
     }
+}
+
+InfoObject::InfoObject(string infoMsg, ofColor txtColor, ofColor bgColor): infoMsg(infoMsg), txtColor(txtColor), bgColor(bgColor) {
+}
+
+void InfoObject::onStart() {
+    // infoMsgをもとにテキストオブジェクトを作る
+    textArea = make_shared<TextArea>();
+    textArea->color = txtColor;
+    float margin = 15;
+    textArea->setRect(ofRectangle(margin, margin + TextArea::font.getSize(), getWidth() - 100 - margin, 0));
+
+    textArea->setString(infoMsg);
+
+    float h = textArea->getPos().y + textArea->getHeight() + margin;
+    h = MAX(h, 50); // 最低40pixの大きさを持つ
+    setHeight(h);
+    addChild(textArea);
+
+    // 親オブジェクトにリサイズ要求
+    auto p = getParentBox();
+    if (p) {
+        p->updateList();
+    }
+}
+
+void InfoObject::onUpdate() {
+    if (textArea && textArea->delayText) {
+        // 文字列がつらつらと出ている最中はリサイズ
+        float margin = 15;
+        float h = textArea->getPos().y + textArea->getHeight() + margin;
+        h = MAX(h, 50); // 最低50pixの大きさを持つ
+        setHeight(h);
+
+        // 親オブジェクトにリストの調整要求
+        auto p = getParentBox();
+        if (p) {
+            p->updateList();
+        }
+    }
+}
+
+void InfoObject::onDraw() {
+    // ざぶとん
+    ofFill();
+    ofSetColor(0, 0, 100, 100);
+    ofDrawRectangle(1, 1, getWidth() - 2, getHeight() - 2);
 }

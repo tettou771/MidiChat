@@ -1,43 +1,10 @@
-﻿#include "ChatView.h"
+#include "ChatView.h"
 
 ChatView::ChatView() {
     
 }
 
 void ChatView::onSetup() {
-    bool debug = false;
-    //for (int i=0;i<20;++i) {
-    if (debug) {
-        ofJson newDebugMessage;
-        newDebugMessage["message"]["role"] = "assistant";
-        newDebugMessage["message"]["content"] = R"({
-    "message": "This is a white triangle on black.",
-    "image": {
-    "width": 16,
-    "height": 16,
-    "pixels": [
-    "0000000110000000",
-    "0000000110000000",
-    "0000001111000000",
-    "0000001111000000",
-    "0000011111100000",
-    "0000011111100000",
-    "0000111111110000",
-    "0000111111110000",
-    "0001111111111000",
-    "0001111111111000",
-    "0011111111111100",
-    "0011111111111100",
-    "0111111111111110",
-    "0111111111111110",
-    "1111111111111111",
-    "1111111111111111"
-    ]
-    },
-    "error": "Write any error messages here if there is an issue"
-    })";
-        addMessage(newDebugMessage);
-    }
 }
 
 void ChatView::onUpdate() {
@@ -64,10 +31,12 @@ void ChatView::addMessage(ofJson message) {
     else {
         newMsgObj->destroy();
     }
-    
-    // メッセージを追加するたびに下にスクロールする
+        
+    // オブジェクトの位置を調整
     updateMessagesPosition();
     
+    // TODO
+    // メッセージを追加するたびに下にスクロールする
     auto view = getParent()->getThisAs<ScrollView>();
     if (view) {
         view->scrollY(-100);
@@ -86,3 +55,13 @@ shared_ptr<MessageObject> ChatView::getLastMessageObject() {
     if (messages.empty()) return nullptr;
     else return messages.back();
 }
+
+void ChatView::deleteLastAssistantMessage() {
+    // 最後のオブジェクトがassistantだったらそれを消す
+    if (!messages.empty() && messages.back()->getRole() == "assistant") {
+        messages.back()->destroy();
+        messages.erase(messages.end() - 1);
+    }
+}
+
+

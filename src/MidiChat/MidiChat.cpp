@@ -1,70 +1,4 @@
 #include "MidiChat.h"
-#include "prompt.h"
-
-Chat::Chat() {
-    
-}
-
-void Chat::setup() {
-    // setup chatGPT
-    string apiKey;
-    ofJson configJson = ofLoadJson("config.json");
-    apiKey = configJson["apiKey"].get<string>();
-    chatGPT.setup(apiKey);
-
-    vector<string> models;
-    ofxChatGPT::ErrorCode err;
-    tie(models, err) = chatGPT.getModelList();
-    ofLogNotice("Chat") << "Available OpenAI GPT models:";
-    for (auto model : models) {
-        // GPT系のモデルだけをリストアップ
-        if (ofIsStringInString(model, "gpt")) {
-            ofLogNotice("Chat") << model;
-        }
-    }
-    
-    // send system message
-    chatGPT.setSystem(GPT_Prompt());
-    chatGPT.setModel("gpt-3.5-turbo");
-    //chatGPT.setModel("gpt-4");
-}
-
-void Chat::threadedFunction() {
-    auto response = chatGPT.chatWithHistory(requestingMessage);
-    
-    mutex.lock();
-    availableMessages.push_back(response);
-    mutex.unlock();
-}
-
-void Chat::chatWithHistoryAsync(string msg) {
-    if (isThreadRunning()) return;
-    requestingMessage = msg;
-    ofLogNotice("Chat") << "chatWithHistoryAsync " << msg;
-    startThread();
-}
-
-bool Chat::isWaiting() {
-    return isThreadRunning();
-}
-
-bool Chat::hasMessage() {
-    return availableMessages.size() > 0;
-}
-
-tuple<string, ofxChatGPT::ErrorCode> Chat::getMessage() {
-    mutex.lock();
-    if (availableMessages.size() > 0) {
-        ofLogNotice("Chat") << "getMessage";
-        auto msg = availableMessages.front();
-        availableMessages.erase(availableMessages.begin());
-        return msg;
-    } else {
-        return tuple<string, ofxChatGPT::ErrorCode>("", ofxChatGPT::UnknownError);
-    }
-    mutex.unlock();
-}
-
 
 MidiChat::MidiChat() {
     
@@ -86,17 +20,28 @@ void MidiChat::onSetup(){
     sequencerView->setRect(ofRectangle(1200, 100, 700, 1000));
     addChild(sequencerView);
     
-    chat.setup();
-    
-    /*
+    // GPTの何が使えるか調べる
+    ofxChatGPT chappy;
     vector<string> models;
-    ofxChatGPT::ErrorCode errorCode;
-    tie(models, errorCode) = chatGPT.getModelList();
-    for (auto m : models) {
-        ofLog() << "Model " << m;
+    ofxChatGPT::ErrorCode err;
+    tie(models, err) = chappy.getModelList();
+    ofLogNotice("MidiChat") << "Available OpenAI GPT models:";
+    for (auto model : models) {
+        // GPT系のモデルだけをリストアップ
+        if (ofIsStringInString(model, "gpt")) {
+            ofLogNotice("MidiChat") << model;
+        }
     }
-     */
+
+    // セットする
+    string model = "gpt-3.5-turbo";
+    //string model = "gpt-4";
+    chat.setup(model);
     
+    // GPTのモデルを情報に入れる
+    auto info = make_shared<InfoObject>("GPT model: " + model, ofColor(180));
+    chatView->addElement(info);
+        
     // フォントをロード
     string fontName;
 #ifdef TARGET_OS_MAC
@@ -138,13 +83,19 @@ void MidiChat::onUpdate(){
             
             // If the message has sequence, apply to SequencerView
             auto lastMsg = chatView->getLastMessageObject();
-            if (lastMsg && lastMsg->hasMidi) {
-                sequencerView->setNextSequence(lastMsg->midiJson);
+            if (lastMsg && lastMsg->hasMidi()) {
+                sequencerView->setNextSequence(lastMsg->getMidiJson());
             }
         }
-        // 失敗していたらログを出す
+        // 失敗していたらInfoObjectを追加
         else {
             ofLogError("MidiChat") << "ofxChatGPT has an error. " << ofxChatGPT::getErrorMessage(errorCode);
+            auto info = make_shared<InfoObject>("Error: " + ofxChatGPT::getErrorMessage(errorCode), ofColor(255, 50, 0));
+            chatView->addElement(info);
+
+            regenerateButton = make_shared<InfoObject>("Regenerate", ofColor(255, 255, 0));
+            chatView->addElement(regenerateButton);
+            ofAddListener(regenerateButton->mousePressedOverComponentEvents, this, &MidiChat::regenerate);
         }
     }
 }
@@ -205,4 +156,17 @@ void MidiChat::sendMessage() {
     chat.chatWithHistoryAsync(message);
     
     ime.clear();
+}
+
+void MidiChat::regenerate() {
+    ofLogNotice("MidiChat") << "Regenerate";
+    
+    // 一旦、最後のメッセージがassistantだったら削除する
+    chatView->deleteLastAssistantMessage();
+    
+    ofRemoveListener(regenerateButton->mousePressedOverComponentEvents, this, &MidiChat::regenerate);
+    regenerateButton->destroy();
+    regenerateButton = nullptr;
+
+    chat.regenerateAsync();
 }
