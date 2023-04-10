@@ -4,46 +4,30 @@ ChatThread::ChatThread() {
     
 }
 
-void ChatThread::setup(string model) {
+void ChatThread::setup(string model, string apiKey) {
     // setup chatGPT
-    string apiKey;
-    ofJson configJson = ofLoadJson("config.json");
-    apiKey = configJson["apiKey"].get<string>();
     chatGPT.setup(apiKey);
-
-    chatGPT.setSystem(GPT_Prompt());
     chatGPT.setModel(model);
 }
 
 void ChatThread::threadedFunction() {
     tuple<string, ofxChatGPT::ErrorCode> response;
     
-    if (regenerateFlag) {
-        response = chatGPT.chatRegenerate();
-    }
-    else {
+    switch (type) {
+    case Chat:
+        response = chatGPT.chat(requestingMessage);
+        break;
+    case ChatWithHistory:
         response = chatGPT.chatWithHistory(requestingMessage);
+        break;
+    case Regenerate:
+        response = chatGPT.chatRegenerate();
+        break;
     }
     
     mutex.lock();
     availableMessages.push_back(response);
     mutex.unlock();
-}
-
-void ChatThread::chatWithHistoryAsync(string msg) {
-    if (isThreadRunning()) return;
-    requestingMessage = msg;
-    ofLogNotice("Chat") << "chatWithHistoryAsync " << msg;
-    regenerateFlag = false;
-    startThread();
-}
-
-void ChatThread::regenerateAsync() {
-    if (isThreadRunning()) return;
-    
-    regenerateFlag = true;
-    ofLogNotice("Chat") << "regenerateAsync";
-    startThread();
 }
 
 bool ChatThread::isWaiting() {
@@ -52,6 +36,34 @@ bool ChatThread::isWaiting() {
 
 bool ChatThread::hasMessage() {
     return availableMessages.size() > 0;
+}
+
+void ChatThread::setSystemMessage(string msg) {
+    chatGPT.setSystem(msg);
+}
+
+void ChatThread::chatAsync(string msg) {
+    if (isThreadRunning()) return;
+    requestingMessage = msg;
+    ofLogNotice("Chat") << "chatAsync " << msg;
+    type = Chat;
+    startThread();
+}
+
+void ChatThread::chatWithHistoryAsync(string msg) {
+    if (isThreadRunning()) return;
+    requestingMessage = msg;
+    ofLogNotice("Chat") << "chatWithHistoryAsync " << msg;
+    type = ChatWithHistory;
+    startThread();
+}
+
+void ChatThread::regenerateAsync() {
+    if (isThreadRunning()) return;
+    
+    type = Regenerate;
+    ofLogNotice("Chat") << "regenerateAsync";
+    startThread();
 }
 
 tuple<string, ofxChatGPT::ErrorCode> ChatThread::getMessage() {

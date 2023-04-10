@@ -19,9 +19,14 @@ void MidiChat::onSetup(){
     sequencerView = make_shared<SequencerView>();
     sequencerView->setRect(ofRectangle(1200, 100, 700, 1000));
     addChild(sequencerView);
-    
+
+    // chatGPTのapiKey
+    ofJson configJson = ofLoadJson("config.json");
+    string apiKey = configJson["apiKey"].get<string>();
+
     // GPTの何が使えるか調べる
     ofxChatGPT chappy;
+    chappy.setup(apiKey);
     vector<string> models;
     ofxChatGPT::ErrorCode err;
     tie(models, err) = chappy.getModelList();
@@ -36,7 +41,9 @@ void MidiChat::onSetup(){
     // セットする
     string model = "gpt-3.5-turbo";
     //string model = "gpt-4";
-    chat.setup(model);
+
+    chat.setup(model, apiKey);
+    chat.setSystemMessage(GPT_Prompt());
     
     // GPTのモデルを情報に入れる
     auto info = make_shared<InfoObject>("GPT model: " + model, ofColor(180));
