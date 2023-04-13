@@ -52,7 +52,7 @@ void MidiChat::onSetup(){
     // フォントをロード
     string fontName;
 #ifdef TARGET_OS_MAC
-    fontName = "HiraKakuStdN-W4";
+    fontName = "HiraginoSans-W4";
 #elif defined WIN32
     fontName = "Meiryo";
 #else
