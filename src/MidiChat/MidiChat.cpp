@@ -91,7 +91,7 @@ void MidiChat::onUpdate(){
             // If the message has sequence, apply to SequencerView
             auto lastMsg = chatView->getLastMessageObject();
             if (lastMsg && lastMsg->hasMidi()) {
-                sequencerView->setNextSequence(lastMsg->getMidiJson());
+                sequencerView->setNextSequence(lastMsg->getSequenceStr());
             }
         }
         // 失敗していたらInfoObjectを追加

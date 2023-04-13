@@ -11,31 +11,14 @@ SequencerView::~SequencerView() {
 void SequencerView::onStart() {
 	// make dummy data
 	{
-		string dummyStr = R"({
-  "sequence_length": 4800,
-  "notes": [
-    [0, [true, 76, 127, 1]],
-    [480, [false, 76, 0, 1]],
-    [480, [true, 76, 127, 1]],
-    [960, [false, 76, 0, 1]],
-    [960, [true, 72, 127, 1]],
-    [1440, [false, 72, 0, 1]],
-    [1440, [true, 76, 127, 1]],
-    [1920, [false, 76, 0, 1]],
-    [1920, [true, 79, 127, 1]],
-    [2400, [false, 79, 0, 1]],
-    [2400, [true, 79, 127, 1]],
-    [2880, [false, 79, 0, 1]],
-    [2880, [true, 76, 127, 1]],
-    [3360, [false, 76, 0, 1]],
-    [3360, [true, 74, 127, 1]],
-    [3840, [false, 74, 0, 1]],
-    [3840, [true, 72, 127, 1]],
-    [4320, [false, 72, 0, 1]]
-  ]
-})";
-		ofJson dummy = ofJson::parse(dummyStr);
-		setCurrentSequence(dummy);
+		string dummyStr = 
+R"(t:3,4,2
+b:80
+M:C5q,D5egE5gdC5CCEDCEECE
+B:C3hG2h
+C:C5i+E5+G5C5i+D5+E5
+P:C1qgD1qg)";
+        setCurrentSequence(dummyStr);
 	}
     
     ofAddListener(Thumbnail::selectedEvents, this, &SequencerView::setNextSequence);
@@ -82,7 +65,7 @@ void SequencerView::onDraw() {
     // info
     ofSetColor(200);
     stringstream ss;
-    ss << "Sequence Length " << sequenceLengthMs << "msec" << endl;
+    ss << "BPM " << ofToString(bpm, 0) << endl;
     ss << "Note " << notes.size() << endl;
     ss << "Onpu " << onpus.size() << endl;
     ofDrawBitmapString(ss.str(), 4, 20);
@@ -146,33 +129,24 @@ float SequencerView::getFps() {
 	return fps;
 }
 
-void SequencerView::setNextSequence(ofJson& mj) {
+void SequencerView::setNextSequence(string& sequenceStr) {
     sequenceMutex.lock();
-    nextMidiJson = mj;
+    nextSequenceStr = sequenceStr;
     hasNextMidiJson = true;
     sequenceMutex.unlock();
 }
 
-void SequencerView::setCurrentSequence(ofJson& mj) {
-    midiJson = mj;
+void SequencerView::setCurrentSequence(string& sequenceStr) {
+    currentSequenceStr = sequenceStr;
     
     // set sequence data
     notesMutex.lock();
-    try {
-        sequenceLengthMs = midiJson["sequence_length"];
-        notes.clear();
-        for (ofJson& noteJson : midiJson["notes"]) {
-            float timeMs = noteJson[0];
-            MidiStatus ms = noteJson[1][0] ? MIDI_NOTE_ON : MIDI_NOTE_OFF;
-            auto note = Note(timeMs, ms, noteJson[1][1].get<int>(), noteJson[1][2].get<int>(), noteJson[1][3].get<int>());
-            notes.push_back(note);
-        }
-    }
-    catch (exception e) {
-        ofLogError("SequenceView") << "JSON parse error.";
-    }
+    notes.clear();
+
+    // notes作成
+    makeNotes(currentSequenceStr, notes, bpm);
     
-    // すでにある描画用のンプを削除
+    // すでにある描画用の音符を削除
     for (auto onpu : onpus) {
         onpu->destroy();
     }
@@ -290,7 +264,7 @@ void SequencerView::sendMidiTimeClock() {
 }
 
 void SequencerView::midiLoop() {
-	// note�𑗂�
+	// noteを読む
 	sequenceTime += diff;
 
 	if (sequenceLengthMs > 0) {
@@ -329,9 +303,9 @@ void SequencerView::midiLoop() {
 void SequencerView::changeToNextSequence() {
     if (!hasNextMidiJson) return;
     sequenceMutex.lock();
-    setCurrentSequence(nextMidiJson);
+    setCurrentSequence(nextSequenceStr);
     hasNextMidiJson = false;
-    nextMidiJson.clear();
+    nextSequenceStr = "";
     sequenceMutex.unlock();
 }
 

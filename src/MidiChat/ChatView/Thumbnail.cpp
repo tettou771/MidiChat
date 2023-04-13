@@ -1,8 +1,8 @@
 #include "Thumbnail.h"
 
-ofEvent<ofJson> Thumbnail::selectedEvents;
+ofEvent<string> Thumbnail::selectedEvents;
 
-Thumbnail::Thumbnail(ofJson &j) {
+Thumbnail::Thumbnail(string &sequenceStr) {
     // make thumbnail
     ofFboSettings s;
     s.width = 100;
@@ -16,7 +16,7 @@ Thumbnail::Thumbnail(ofJson &j) {
     ofDrawRectangle(0, 0, fbo.getWidth()-1, fbo.getHeight()-1);
     fbo.end();
     
-    json = j;
+    this->sequenceStr = sequenceStr;
 }
 
 void Thumbnail::onDraw() {
@@ -36,5 +36,5 @@ void Thumbnail::onDraw() {
 }
 
 void Thumbnail::onMousePressedOverComponent(ofMouseEventArgs &mouse) {
-    ofNotifyEvent(selectedEvents, json);
+    ofNotifyEvent(selectedEvents, sequenceStr);
 }

@@ -1,79 +1,5 @@
 #include "MessageObject.h"
 
-ofTrueTypeFont TextArea::font;
-
-void TextArea::onStart() {
-}
-
-void TextArea::onUpdate() {
-	if (!delayText) return;
-
-	// delayTextがtrueのとき、つらつらと一文字ずつ描画するためにmessageに一つずつ追加する
-
-	// 今の経過時間
-	float elapsedTime = ofGetElapsedTimef() - startTime;
-
-	// 1秒あたりに表示する文字数
-    // 5秒以内で表示できるように文字数に比例するが、最低でも 20 にしておく
-    cps = MAX(20, (int)u32message.length() / 5);
-
-	// 今あるべき文字数
-	int expectedNum = MIN((int)u32message.length(), cps * elapsedTime);
-
-	for (int i = delayTextIndex; i < expectedNum; ++i) {
-		string s = ofxGoogleIME::UTF32toUTF8(u32message[i]);
-		float w = font.stringWidth(message + s);
-		if (w > getWidth()) {
-			message += '\n' + s;
-		}
-		else {
-			message += s;
-		}
-	}
-	delayTextIndex = expectedNum;
-
-	// 文字列の大きさに合わせてサイズを変更
-	auto bbox = font.getStringBoundingBox(message, 0, font.getSize());
-	setHeight(bbox.y + bbox.getHeight());
-
-	if (delayTextIndex == u32message.length()) {
-		delayText = false;
-	}
-
-}
-
-void TextArea::onDraw() {
-	// サムネイルが左に入るので、右に寄せて描画
-    ofSetColor(color);
-	font.drawString(message, 0, font.getSize());
-}
-
-void TextArea::setString(string& str) {
-	u32message = ofxGoogleIME::UTF8toUTF32(str);
-	message = "";
-	for (int i = 0; i < u32message.size(); ++i) {
-		string s = ofxGoogleIME::UTF32toUTF8(u32message[i]);
-		float w = font.stringWidth(message + s);
-		if (w > getWidth()) {
-			message += '\n' + s;
-		}
-		else {
-			message += s;
-		}
-	}
-
-	// 文字列の大きさに合わせてサイズを変更
-	auto bbox = font.getStringBoundingBox(message, 0, font.getSize());
-	setHeight(bbox.y + bbox.getHeight());
-}
-
-void TextArea::setStringDelay(string& str) {
-	u32message = ofxGoogleIME::UTF8toUTF32(str);
-	startTime = ofGetElapsedTimef();
-	delayText = true;
-	delayTextIndex = 0;
-}
-
 MessageObject::MessageObject(ofJson json) {
 	raw = json;
 	valid = false;
@@ -84,72 +10,21 @@ MessageObject::MessageObject(ofJson json) {
 		raw["message"].count("content") > 0 && raw["message"]["content"].is_string()) {
 
 		role = raw["message"]["role"].get<string>();
+		string content = raw["message"]["content"];
+		valid = true;
+		sequenceStr = "";
 
-		// メッセージがJSONになっているかどうか確認
-		string jsonString = raw["message"]["content"];
-		bool parseSuccess = false;
-        try {
-            data = ofJson::parse(jsonString);
-            parseSuccess = true;
-        } catch (exception e) {
-            //  jsonStringをパースできなかったら、前後にコメントが入っている可能性があるので
-            // それらを削除してもう一度トライする
-            std::string beforeJson, json, afterJson;
-            
-            extractJsonParts(jsonString, beforeJson, json, afterJson);
-            if (json.length() > 0) {
-                try {
-                    data = ofJson::parse(json);
-                    parseSuccess = true;
-                }
-                catch (exception e) {
-                    ofLogError("MessageObject") << "JSON parse error " << e.what();
-                }
-            }
-        }
-        
-        // JSONとして解釈できたら次に進む
-        if (parseSuccess) {
-            ofLogNotice() << "JSON parse OK";
-            valid = true;
-            try{
-                // MIDIデータがあるかどうか確認
-                if (data.count("midi") > 0 && data["midi"].is_object()) {
-                    midiJson = data["midi"];
-                    if (midiJson.count("sequence_length") > 0 && midiJson["sequence_length"].is_number() &&
-                        midiJson.count("notes") > 0 && midiJson["notes"].is_array()) {
-                        itHasMidi = true;
-                    }
-                }
-                
-                if (data.count("message") > 0 && data["message"].is_string()) {
-                    message += data["message"].get<string>();
-                }
-                if (data.count("error") > 0 && data["error"].is_string() && data["error"].get<string>() != "") {
-                    message += "\nERROR: " + data["error"].get<string>();
-                }
-            }
-            catch (std::exception& e) {
-                // JSONとしてパースできたのに、エラーが出た時
-                ofLogError("MessageObject") << "JSON error";
-            }
-        }
-        else {
-            // JSON形式ではないので、そのままメッセージとして解釈
-            message = raw["message"]["content"].get<string>();
-            valid = true;
-        }
-
+		itHasMidi = extractSequence(content, sequenceStr);
     }
     else {
-		ofLogError("MessageObject") << "JSON is not valid: " << data;
+		ofLogError("MessageObject") << "JSON is not valid: " << raw;
 	}
 }
 
 void MessageObject::onStart() {
 	if (hasMidi()) {
 		// make thumbnail
-		auto thumb = make_shared<Thumbnail>(midiJson);
+		auto thumb = make_shared<Thumbnail>(sequenceStr);
 		thumb->setRect(ofRectangle(10, 10, 60, 60));
 		addChild(thumb);
 	}
@@ -209,19 +84,21 @@ void MessageObject::onDraw() {
 	TextArea::font.drawString(role, 100, 40);
 }
 
-void MessageObject::extractJsonParts(const std::string& input, std::string& beforeJson, std::string& json, std::string& afterJson) {
-    std::size_t begin = input.find_first_of('{');
-    std::size_t end = input.find_last_of('}');
-    
-    if (begin != std::string::npos && end != std::string::npos && begin < end) {
-        beforeJson = input.substr(0, begin);
-        json = input.substr(begin, end - begin + 1);
-        afterJson = input.substr(end + 1);
-    } else {
-        beforeJson = input;
-        json = "";
-        afterJson = "";
-    }
+bool MessageObject::extractSequence(const std::string& content, std::string& sequenceStr) {
+	std::istringstream contentStream(content);
+	std::string line;
+	bool inSequence = false;
+
+	while (std::getline(contentStream, line)) {
+		if (line.find("```") != std::string::npos) {
+			inSequence = !inSequence;
+		}
+		else if (inSequence) {
+			sequenceStr += line + "\n";
+		}
+	}
+
+	return !sequenceStr.empty();
 }
 
 InfoObject::InfoObject(string infoMsg, ofColor txtColor, ofColor bgColor): infoMsg(infoMsg), txtColor(txtColor), bgColor(bgColor) {

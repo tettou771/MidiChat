@@ -190,6 +190,9 @@
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\MidiChat\ChatThread.cpp" />
+    <ClCompile Include="src\MidiChat\ChatView\TextArea.cpp" />
+    <ClCompile Include="src\MidiChat\Midi\Note.cpp" />
+    <ClCompile Include="src\MidiChat\Midi\Onpu.cpp" />
     <ClCompile Include="src\MidiChat\Midi\SequencerView.cpp" />
     <ClCompile Include="src\ofApp.cpp" />
     <ClCompile Include="src\MidiChat\ChatView\ChatView.cpp" />
@@ -234,6 +237,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\MidiChat\ChatThread.h" />
+    <ClInclude Include="src\MidiChat\ChatView\TextArea.h" />
+    <ClInclude Include="src\MidiChat\Midi\Note.h" />
+    <ClInclude Include="src\MidiChat\Midi\Onpu.h" />
     <ClInclude Include="src\MidiChat\Midi\SequencerView.h" />
     <ClInclude Include="src\MidiChat\prompt.h" />
     <ClInclude Include="src\ofApp.h" />

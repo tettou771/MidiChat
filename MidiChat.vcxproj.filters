@@ -136,6 +136,15 @@
     <ClCompile Include="src\MidiChat\ChatThread.cpp">
       <Filter>src\MidiChat</Filter>
     </ClCompile>
+    <ClCompile Include="src\MidiChat\ChatView\TextArea.cpp">
+      <Filter>src\MidiChat\ChatView</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MidiChat\Midi\Onpu.cpp">
+      <Filter>src\MidiChat\Midi</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MidiChat\Midi\Note.cpp">
+      <Filter>src\MidiChat\Midi</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">
@@ -385,6 +394,15 @@
     </ClInclude>
     <ClInclude Include="src\MidiChat\ChatThread.h">
       <Filter>src\MidiChat</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MidiChat\ChatView\TextArea.h">
+      <Filter>src\MidiChat\ChatView</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MidiChat\Midi\Note.h">
+      <Filter>src\MidiChat\Midi</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MidiChat\Midi\Onpu.h">
+      <Filter>src\MidiChat\Midi</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
