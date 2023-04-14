@@ -5,15 +5,28 @@ ofEvent<string> Thumbnail::selectedEvents;
 Thumbnail::Thumbnail(string &sequenceStr) {
     // make thumbnail
     ofFboSettings s;
-    s.width = 100;
-    s.height = 100;
+    s.width = 40;
+    s.height = 40;
+    s.internalformat = GL_RGB;
     s.maxFilter = GL_NEAREST;
     fbo.allocate(s);
     fbo.begin();
-    ofClear(100);
-    ofSetColor(200);
-    ofNoFill();
-    ofDrawRectangle(0, 0, fbo.getWidth()-1, fbo.getHeight()-1);
+    ofPushStyle();
+    {
+        ofSetColor(0, 100, 100);
+        ofFill();
+        ofDrawRectangle(0, 0, s.width, s.height);
+        
+        ofSetColor(20, 150, 150);
+        ofNoFill();
+        ofSetLineWidth(2);
+        ofDrawRectangle(0, 0, s.width, s.height);
+
+        ofSetColor(255);
+        fbo.draw(0, 0, getWidth(), getHeight());
+        ofDrawBitmapString("MIDI\nDATA", 4, (s.height - 28) / 2 + 15);
+    }
+    ofPopStyle();
     fbo.end();
     
     this->sequenceStr = sequenceStr;
@@ -21,20 +34,11 @@ Thumbnail::Thumbnail(string &sequenceStr) {
 
 void Thumbnail::onDraw() {
     if (!fbo.isAllocated()) return;
-    
-    ofSetColor(0, 100, 100);
-    ofFill();
-    ofDrawRectangle(0, 0, getWidth(), getHeight());
 
-    ofSetColor(50, 150, 150);
-    ofNoFill();
-    ofDrawRectangle(0, 0, getWidth(), getHeight());
-
-    ofSetColor(255);
     fbo.draw(0, 0, getWidth(), getHeight());
-    ofDrawBitmapString("MIDI\nDATA", 4, (getHeight() - 28) / 2 + 15);
 }
 
 void Thumbnail::onMousePressedOverComponent(ofMouseEventArgs &mouse) {
     ofNotifyEvent(selectedEvents, sequenceStr);
+    ofSetClipboardString("```\n" + sequenceStr + "\n```");
 }

@@ -10,11 +10,11 @@ MessageObject::MessageObject(ofJson json) {
 		raw["message"].count("content") > 0 && raw["message"]["content"].is_string()) {
 
 		role = raw["message"]["role"].get<string>();
-		string content = raw["message"]["content"];
+		message = raw["message"]["content"];
 		valid = true;
 		sequenceStr = "";
 
-		itHasMidi = extractSequence(content, sequenceStr);
+		itHasMidi = extractSequence(message, sequenceStr);
     }
     else {
 		ofLogError("MessageObject") << "JSON is not valid: " << raw;

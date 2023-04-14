@@ -42,10 +42,5 @@ void Onpu::updateSize() {
     rect.y = p->getHeight() - (begin->pitch - pitchOffset) * pitchHeight;
     rect.height = pitchHeight;
 
-    int margin = 1;
-    rect.x += margin;
-    rect.y += margin;
-    rect.width -= margin * 2;
-    rect.height -= margin * 2;
     setRect(rect);
 }

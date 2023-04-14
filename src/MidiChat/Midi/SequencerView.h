@@ -89,12 +89,13 @@ private:
 	vector<shared_ptr<Onpu> > onpus;
 	void updateDrawObjectsPosotion();
 
-	int noteToMidiPitch(const std::string& note, int octave) {
+	int noteToMidiPitch(const std::string& note, char octave) {
 		const std::map<std::string, int> noteToMidi = {
 			{"C", 0}, {"C#", 1}, {"D", 2}, {"D#", 3}, {"E", 4}, {"F", 5}, {"F#", 6}, {"G", 7}, {"G#", 8}, {"A", 9}, {"A#", 10}, {"B", 11}
 		};
 
-		int midiPitch = noteToMidi.at(note) + (octave + 1) * 12;
+        int octaveInt = octave - '0';
+		int midiPitch = noteToMidi.at(note) + (octaveInt + 1) * 12;
 		return midiPitch;
 	}
 
@@ -103,8 +104,13 @@ private:
 			{'M', 1}, {'B', 2}, {'C', 3}, {'P', 10}
 		};
 
-		int channel = partToChannel.at(partType[0]);
-		return channel;
+        auto it = partToChannel.find(partType[0]);
+        if (it != partToChannel.end()) {
+            return it->second;
+        } else {
+            // キーが見つからない場合、デフォルト値を返す
+            return 1;
+        }
 	}
 
 	int noteLengthToMilliseconds(char noteLength, int bpm) {
@@ -161,84 +167,60 @@ private:
 			partType = line.substr(0, 2);
 			line = line.substr(2);
 
-			size_t i = 0;
-			while (i < line.length()) {
-				string note = prevNote;
-				string octave = prevOctave;
-				char length = prevLength;
-				char intensity = prevIntensity;
-				bool harmony = false;
-				bool valid = false;
+            string note = "";
+            char octave = '1';
+            char length = 'q';
+            char intensity = 'g';
+
+            for (int i = 0; i < line.length(); ++i) {
 
 				// Extract note
 				if (isupper(line[i])) {
 					note = line[i];
-					i++;
-					valid = true;
-					if (i < line.length() && line[i] == '#') {
-						note += line[i];
-						i++;
-					}
 				}
+                else if (line[i] == '#') {
+                    note += line[i];
+                }
 
 				// Extract octave if present
-				if (i < line.length() && isdigit(line[i])) {
+				else if (isdigit(line[i])) {
 					octave = line[i];
-					i++;
-					valid = true;
 				}
 
 				// Extract length if present
-				if (i < line.length() && strchr("whqis", line[i]) != nullptr) {
+				else if (strchr("whqis", line[i]) != nullptr) {
 					length = line[i];
-					i++;
-					valid = true;
 				}
 
 				// Extract intensity if present
-				if (i < line.length() && strchr("abcdefg", line[i]) != nullptr) {
+				else if (strchr("abcdefg", line[i]) != nullptr) {
 					intensity = line[i];
-					i++;
-					valid = true;
 				}
 
-				// Move to the next note in the chord if there is a '+' symbol
-				if (i < line.length() && line[i] == '+') {
-					i++;
-					valid = true;
-					harmony = true;
-				}
-
-				if (!valid) {
-					i++;
-					continue;
-				}
-
-				// Create the note and add it to the notes vector
-				if (!note.empty() && note[0] != 'R') {
-					float noteLengthMs = noteLengthToMilliseconds(length, bpm);
-					int pitch = noteToMidiPitch(note, std::stoi(octave));
-					int channel = partTypeToMidiChannel(partType);
-					int velocity = intensityToMidiVelocity(intensity);
-
-					notes.push_back(Note(currentTimeMs, MIDI_NOTE_ON, pitch, velocity, channel));
-					notes.push_back(Note(currentTimeMs + noteLengthMs, MIDI_NOTE_OFF, pitch, velocity, channel));
-				}
-
-				if (!harmony) {
-					int l = noteLengthToMilliseconds(length, bpm);
-					currentTimeMs += l;
-				}
-
-				prevNote = note;
-				prevOctave = octave;
-				prevLength = length;
-				prevIntensity = intensity;
+				// Create the note if next char is note or endl
+                if (i == line.length()-1 || isupper(line[i+1]) || line[i+1] == '+') {
+                    // R は休符なのでNoteを作らない
+                    if (!note.length() == 0 && note[0] != 'R') {
+                        float noteLengthMs = noteLengthToMilliseconds(length, bpm);
+                        int pitch = noteToMidiPitch(note, octave);
+                        int channel = partTypeToMidiChannel(partType);
+                        int velocity = intensityToMidiVelocity(intensity);
+                        
+                        notes.push_back(Note(currentTimeMs, MIDI_NOTE_ON, pitch, velocity, channel));
+                        notes.push_back(Note(currentTimeMs + noteLengthMs, MIDI_NOTE_OFF, pitch, velocity, channel));
+                    }
+                    
+                    bool harmony = (i < line.length()-1) && (line[i+1] == '+');
+                    if (!harmony) {
+                        // note shift
+                        currentTimeMs += noteLengthToMilliseconds(length, bpm);;
+                    }
+                }
 			}
 		}
 
 		// a / b beat n 小節分の長さがシーケンス全体の長さになる
-		sequenceLengthMs = (60000. * n * (a / b)) / bpm;
+		sequenceLengthMs = 60000. * n * a / b / bpm;
 	}
 
 };

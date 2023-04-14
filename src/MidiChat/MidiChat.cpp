@@ -157,6 +157,12 @@ void MidiChat::sendMessage() {
     newUserMsg["message"]["content"] = message;
     chatView->addMessage(newUserMsg);
     
+    // もし自分がMIDIを書いていたら、それを反映させる
+    auto lastMsg = chatView->getLastMessageObject();
+    if (lastMsg && lastMsg->hasMidi()) {
+        sequencerView->setNextSequence(lastMsg->getSequenceStr());
+    }
+    
     ofLogVerbose("MidiChat") << "User: " << newUserMsg;
     
     // メッセージを送信
