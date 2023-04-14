@@ -94,8 +94,16 @@ private:
 			{"C", 0}, {"C#", 1}, {"D", 2}, {"D#", 3}, {"E", 4}, {"F", 5}, {"F#", 6}, {"G", 7}, {"G#", 8}, {"A", 9}, {"A#", 10}, {"B", 11}
 		};
 
-        int octaveInt = octave - '0';
-		int midiPitch = noteToMidi.at(note) + (octaveInt + 1) * 12;
+		int midiPitch = 0; // ノートが見つからない場合のデフォルト値
+		auto it = noteToMidi.find(note);
+		if (it != noteToMidi.end()) {
+			midiPitch = it->second;
+		}
+
+		// オクターブによってシフトする
+		int octaveInt = octave - '0';
+		midiPitch += (octaveInt + 1) * 12;
+
 		return midiPitch;
 	}
 

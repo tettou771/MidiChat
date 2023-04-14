@@ -12,13 +12,12 @@ void SequencerView::onStart() {
 	// make dummy data
 	{
 		string dummyStr = 
-R"(t:4,4,4
-b:100
-M:C4qg,C5qgG4qgG4qgA4qgA4qgG4h
-M:F4qgF4qgE4qgE4qgD4qgD4qgC4h
-B:C3h,C4hG2hG2hA2hA2hG2h
-C:C4q+E4+G4,C5q+E5+G5G4q+B4+D5G4q+B4+D5A4q+C5+E5A4q+C5+E5G4q+B4+D5G4q+B4+D5
-P:C1qgR1qgC1qgR1qgC1qgR1qgC1qgR1qg)";
+R"(t:3,4,4
+b:120
+C:C4w+G4w
+M:C4qE4qF4qG4qA4qB4qC5qD5qE5qF5qG5qA5qB5qC6qD6qE6qF6qG6qA6qB6qC7q
+B:C3qG3qC4qE4qG4qC5qE5qG5q
+P:BDkC2q,SDkC4q,HHkC4i,HHkC4i,Ri,Ri,Ri,Ri)";
         setCurrentSequence(dummyStr);
 	}
     
