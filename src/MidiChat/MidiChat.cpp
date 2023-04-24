@@ -17,7 +17,7 @@ void MidiChat::onSetup(){
     addChild(scrollView);
     
     sequencerView = make_shared<SequencerView>();
-    sequencerView->setRect(ofRectangle(1000, 60, 800, 800));
+    sequencerView->setRect(ofRectangle(1000, 60, 860, 800));
     addChild(sequencerView);
 
     // chatGPTのapiKey
@@ -69,7 +69,7 @@ void MidiChat::onSetup(){
     ime.enable();
     setWidth(ofGetWidth());
     setHeight(ofGetHeight());
-    ime.setPos(20, getHeight() - 200);
+    ime.setPos(20, getHeight() - 100);
 
     makeLogFile();
 }

@@ -118,6 +118,9 @@ void SequencerView::start() {
 	sequenceTime = 0;
 	pastSequenceTime = -1; // 再生開始時にゼロ秒のnoteを再生するためにマイナスの値にしておく
 	sequenceCount = 0;
+    beatLength = 4;
+    beatNumerator = 4;
+    beatDenominator = 4;
 
 	startThread();
 }
@@ -319,6 +322,13 @@ void SequencerView::midiLoop() {
             notesMutex.unlock();
 		}
 	}
+    // シーケンスが何もない時
+    else {
+        // もしあれば、次のシーケンスに移行
+        changeToNextSequence();
+        pastSequenceTime = sequenceTime = 0;
+    }
+     
     phase = sequenceTime / sequenceLength;
 	pastSequenceTime = sequenceTime;
 }
