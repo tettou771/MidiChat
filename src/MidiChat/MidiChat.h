@@ -72,24 +72,15 @@ example
 省略前 M:C4qgD4qgE4qdC4qd
 省略後 M:C4qgDEdC
 
-以下のメロディを例にするとこうなる
-beat 3/4, 6拍の長さ
-BPM: 80
-
-メロディ: C5の4分音符, D5の8分音符, E5の8分音符, D5の8分音符, C5の4分音符, C5の4分音符, E5の4分音符, E5の4分音符, C5の4分音符, E5の4分音符
-ベース: C3の2分音符, G2の2分音符
-
-コード: C5+E5+G5の8分音符, C5+D5+E5の8分音符
-パーカッション: キックの4分音符, スネアの4分音符
-
+シーケンスの例
 
 ```
-t:3,4,6
-b:80
-M:C5qD5egE5gdC5CCEDCEECE
-B:C3hG2h
-C:C5i+E5+G5C5i+D5+E5
-P:C1qgD1qg
+t:3,4,12
+b:120
+C:C4i+C5G4+G5|C4+C5G4+G5|F4+F5C4+C5|G4+G5D4+D5
+M:C5qE5iG5|C5iE5iG5i|D5qF5iA5|D5iF5iA5i
+B:F2qF3|C3qC4|F3qF4|G3qG4
+P:C2qR|RqC2|RqC2|RqC2
 ```
 
 必ず、上記のようにコードブロックの中にシーケンスを書く

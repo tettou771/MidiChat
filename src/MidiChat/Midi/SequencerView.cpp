@@ -24,10 +24,10 @@ P:C1qgR1qgC1qgR1qgC1qgR1qgC1qgR1qg)";
         dummyStr = R"(
 t:3,4,12
 b:120
-M:C5qgE5iG5|C5iE5iG5iC6h|D5qgF5iA5|D5iF5iA5iD6h
-C:C4i+C5iG4i+G5i|C4i+C5iG4i+G5i|F4i+F5iC4i+C5i|G4i+G5iD4i+D5i
-B:F2qgF3qg|C3qgC4qg|F3qgF4qg|G3qgG4qg
-P:C2qgRq|RqC2q|RqC2q|RqC2q
+C:C4i+C5G4+G5|C4+C5G4+G5|F4+F5C4+C5|G4+G5D4+D5
+M:C5qE5iG5|C5iE5iG5i|D5qF5iA5|D5iF5iA5i
+B:F2qF3|C3qC4|F3qF4|G3qG4
+P:C2qR|RqC2|RqC2|RqC2
 )";
 
         setCurrentSequence(dummyStr);
@@ -286,23 +286,23 @@ void SequencerView::sendMidiTimeClock() {
 void SequencerView::midiLoop() {
 	// noteを読む
 	sequenceTime += diff;
+    float sequenceLength = sequenceLengthMs / 1000;
 
 	if (sequenceLengthMs > 0) {
         notesMutex.lock();
-        phase = sequenceTime * 1000 / sequenceLengthMs;
 		for (auto& note : notes) {
 			float notetime = note.timeMs / 1000;
 			if (pastSequenceTime < notetime &&
-				notetime <= sequenceTime) {
+				notetime <= MIN(sequenceTime, sequenceLength)) {
 				midiOut.sendMidiBytes(note.midiMessage);
 			}
 		}
         notesMutex.unlock();
 
         // シーケンスの終わりと始まりを跨いでいたら、sequenceTimeをループの最初に戻す
-        // そして、最初のループの最初のあたりの音を踏んでいたら鳴らす
-		if (sequenceLengthMs / 1000 < sequenceTime) {
-            sequenceTime -= sequenceLengthMs / 1000;
+        // そして、ループの最初のあたりの音を踏んでいたら鳴らす
+		if (sequenceLength < sequenceTime) {
+            sequenceTime -= sequenceLength;
 
             // もしあれば、次のシーケンスに移行
             changeToNextSequence();
@@ -317,6 +317,7 @@ void SequencerView::midiLoop() {
             notesMutex.unlock();
 		}
 	}
+    phase = sequenceTime / sequenceLength;
 	pastSequenceTime = sequenceTime;
 }
 
