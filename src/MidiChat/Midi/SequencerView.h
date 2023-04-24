@@ -68,6 +68,7 @@ private:
 	string currentSequenceStr, nextSequenceStr;
 	bool hasNextMidiJson = false;
 	float bpm, sequenceLengthMs;
+    int beatNumerator, beatDenominator, beatLength;
 	vector<Note> notes;
 	ofMutex notesMutex; // 排他制御
 
@@ -132,8 +133,10 @@ private:
 		char prevLength = 'q';
 		char prevIntensity = 'g';
 
-		// a/b拍子 n小節分
-		int a = 4, b = 4, n = 4;
+		// a/b拍子 n拍子
+        beatNumerator = 4;
+        beatDenominator = 4;
+        beatLength = 4;
 
 		// bpm default
 		bpm = 100;
@@ -150,9 +153,9 @@ private:
 				size_t first_comma_pos = line.find(',', 2);
 				size_t second_comma_pos = line.find(',', first_comma_pos + 1);
 
-				a = std::stoi(line.substr(2, first_comma_pos - 2));
-				b = std::stoi(line.substr(first_comma_pos + 1, second_comma_pos - first_comma_pos - 1));
-				n = std::stoi(line.substr(second_comma_pos + 1));
+				beatNumerator = std::stoi(line.substr(2, first_comma_pos - 2));
+				beatDenominator = std::stoi(line.substr(first_comma_pos + 1, second_comma_pos - first_comma_pos - 1));
+				beatLength = std::stoi(line.substr(second_comma_pos + 1));
 
 				continue;
 			}
@@ -171,6 +174,7 @@ private:
             char octave = '1';
             char length = 'q';
             char intensity = 'g';
+            int measureNum = 0; // 何小節目か
 
             for (int i = 0; i < line.length(); ++i) {
 
@@ -197,8 +201,8 @@ private:
 					intensity = line[i];
 				}
 
-				// Create the note if next char is note or endl
-                if (i == line.length()-1 || isupper(line[i+1]) || line[i+1] == '+') {
+				// Create the note if next char is next note or end
+                if (i == line.length()-1 || isupper(line[i+1]) || line[i+1] == '+' || line[i+1] == '|') {
                     // R は休符なのでNoteを作らない
                     if (!note.length() == 0 && note[0] != 'R') {
                         float noteLengthMs = noteLengthToMilliseconds(length, bpm);
@@ -209,18 +213,37 @@ private:
                         notes.push_back(Note(currentTimeMs, MIDI_NOTE_ON, pitch, velocity, channel));
                         notes.push_back(Note(currentTimeMs + noteLengthMs, MIDI_NOTE_OFF, pitch, velocity, channel));
                     }
-                    
+
+                    // 次の音が和音かどうか
                     bool harmony = (i < line.length()-1) && (line[i+1] == '+');
-                    if (!harmony) {
-                        // note shift
-                        currentTimeMs += noteLengthToMilliseconds(length, bpm);;
+                    
+                    // 次が小説の区切りかどうか
+                    bool bar = (i < line.length()-1) && (line[i+1] == '|');
+                    
+                    // 和音なら currentTimeMs を移動しない
+                    // ++iするのは、そのプラスを無視するため
+                    if (harmony) {
+                        ++i;
+                    }
+                    
+                    // 次が小説の区切りなら、そのタイミングにスキップする
+                    else if (bar) {
+                        currentTimeMs = 60000. * beatNumerator / bpm;
+                        ++i;
+                    }
+                    
+                    // 和音じゃなかったら、1beat分動かす
+                    else {
+                        //note shift
+                        currentTimeMs += noteLengthToMilliseconds(length, bpm);
+                        //currentTimeMs += 60000. / bpm;
                     }
                 }
 			}
 		}
 
-		// a / b beat n 小節分の長さがシーケンス全体の長さになる
-		sequenceLengthMs = 60000. * n * a / b / bpm;
+		// 拍子の数がシーケンス全体の長さになる
+		sequenceLengthMs = 60000. * beatLength / bpm;
 	}
 
 };

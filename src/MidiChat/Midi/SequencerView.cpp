@@ -12,13 +12,24 @@ void SequencerView::onStart() {
 	// make dummy data
 	{
 		string dummyStr = 
-R"(t:4,4,4
+R"(t:4,4,8
 b:100
 M:C4qg,C5qgG4qgG4qgA4qgA4qgG4h
 M:F4qgF4qgE4qgE4qgD4qgD4qgC4h
 B:C3h,C4hG2hG2hA2hA2hG2h
 C:C4q+E4+G4,C5q+E5+G5G4q+B4+D5G4q+B4+D5A4q+C5+E5A4q+C5+E5G4q+B4+D5G4q+B4+D5
 P:C1qgR1qgC1qgR1qgC1qgR1qgC1qgR1qg)";
+
+        
+        dummyStr = R"(
+t:3,4,12
+b:120
+C:C4i+C5iG4i+G5i|C4i+C5iG4i+G5i|F4i+F5iC4i+C5i|G4i+G5iD4i+D5i
+M:C5qgE5iG5|C5iE5iG5iC6h|D5qgF5iA5|D5iF5iA5iD6h
+B:F2qgF3qg|C3qgC4qg|F3qgF4qg|G3qgG4qg
+P:HqgRq|RqHq|RqHq|RqHq
+)";
+        
         setCurrentSequence(dummyStr);
 	}
     
@@ -63,10 +74,18 @@ void SequencerView::onDraw() {
         ofDrawRectangle(0, getHeight() - pitch * pitchHeight, getWidth(), -pitchHeight);
     }
     
+    // 小節ごとに線を引く
+    ofSetColor(100);
+    for (int i=beatDenominator; i<beatLength; i+=beatDenominator) {
+        int ix = i * getWidth() / beatLength;
+        ofDrawLine(ix, 0, ix, getHeight());
+    }
+    
     // info
     ofSetColor(200);
     stringstream ss;
     ss << "BPM " << ofToString(bpm, 0) << endl;
+    ss << "Beat " << beatNumerator << "/" << beatDenominator << " " << beatLength << "beats" << endl;
     ss << "Note " << notes.size() << endl;
     ss << "Onpu " << onpus.size() << endl;
     ofDrawBitmapString(ss.str(), 4, 20);
