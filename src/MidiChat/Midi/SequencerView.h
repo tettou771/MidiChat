@@ -95,8 +95,16 @@ private:
 			{"C", 0}, {"C#", 1}, {"D", 2}, {"D#", 3}, {"E", 4}, {"F", 5}, {"F#", 6}, {"G", 7}, {"G#", 8}, {"A", 9}, {"A#", 10}, {"B", 11}
 		};
 
-        int octaveInt = octave - '0';
-		int midiPitch = noteToMidi.at(note) + (octaveInt + 1) * 12;
+		int midiPitch = 0; // ノートが見つからない場合のデフォルト値
+		auto it = noteToMidi.find(note);
+		if (it != noteToMidi.end()) {
+			midiPitch = it->second;
+		}
+
+		// オクターブによってシフトする
+		int octaveInt = octave - '0';
+		midiPitch += (octaveInt + 1) * 12;
+
 		return midiPitch;
 	}
 
@@ -116,7 +124,7 @@ private:
 
 	int noteLengthToMilliseconds(char noteLength, int bpm) {
 		std::map<char, double> noteLengthValues = { {'w', 1.0}, {'h', 0.5}, {'q', 0.25}, {'i', 0.125}, {'s', 0.0625} };
-		return static_cast<int>(noteLengthValues[noteLength] * 60000.0 / bpm);
+		return static_cast<int>(noteLengthValues[noteLength] * beatDenominator * 60000.0 / bpm);
 	}
 
 	int intensityToMidiVelocity(char intensity) {
@@ -228,15 +236,18 @@ private:
                     
                     // 次が小説の区切りなら、そのタイミングにスキップする
                     else if (bar) {
-                        currentTimeMs = 60000. * beatNumerator / bpm;
+                        ++measureNum;
+                        currentTimeMs = measureNum * 60000. * beatNumerator / bpm;
                         ++i;
                     }
                     
-                    // 和音じゃなかったら、1beat分動かす
+                    // 和音じゃなかったら次のタイミングにオフセットする
                     else {
-                        //note shift
-                        currentTimeMs += noteLengthToMilliseconds(length, bpm);
-                        //currentTimeMs += 60000. / bpm;
+                        // 音符の長さ分シフト
+                        //currentTimeMs += noteLengthToMilliseconds(length, bpm);
+                        
+                        // 1拍分シフト
+                        currentTimeMs += 60000. / bpm;
                     }
                 }
 			}

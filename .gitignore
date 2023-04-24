@@ -114,3 +114,4 @@ Desktop.ini
 # app specified
 config.json
 googleAPIresult.txt
+log/*

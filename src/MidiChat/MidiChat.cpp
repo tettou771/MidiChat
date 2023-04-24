@@ -70,6 +70,8 @@ void MidiChat::onSetup(){
     setWidth(ofGetWidth());
     setHeight(ofGetHeight());
     ime.setPos(20, getHeight() - 200);
+
+    makeLogFile();
 }
 
 void MidiChat::onUpdate(){
@@ -85,7 +87,9 @@ void MidiChat::onUpdate(){
             newGPTMsg["message"]["content"] = gptResponse;
             
             ofLogVerbose("MidiChat") << "GPT: " << newGPTMsg;
-            
+            writeToLogFile("GPT:");
+            writeToLogFile(gptResponse);
+
             chatView->addMessage(newGPTMsg);
             
             // If the message has sequence, apply to SequencerView
@@ -97,8 +101,11 @@ void MidiChat::onUpdate(){
         // 失敗していたらInfoObjectを追加
         else {
             ofLogError("MidiChat") << "ofxChatGPT has an error. " << ofxChatGPT::getErrorMessage(errorCode);
-            auto info = make_shared<InfoObject>("Error: " + ofxChatGPT::getErrorMessage(errorCode), ofColor(255, 50, 0));
+            string message = "Error: " + ofxChatGPT::getErrorMessage(errorCode);
+            auto info = make_shared<InfoObject>(message, ofColor(255, 50, 0));
             chatView->addElement(info);
+
+            writeToLogFile(message);
 
             regenerateButton = make_shared<InfoObject>("Regenerate", ofColor(255, 255, 0));
             chatView->addElement(regenerateButton);
@@ -167,6 +174,9 @@ void MidiChat::sendMessage() {
     
     // メッセージを送信
     chat.chatWithHistoryAsync(message);
+
+    writeToLogFile("User:");
+    writeToLogFile(message);
     
     ime.clear();
 }
@@ -181,5 +191,26 @@ void MidiChat::regenerate() {
     regenerateButton->destroy();
     regenerateButton = nullptr;
 
+    writeToLogFile("Regenerate");
+
     chat.regenerateAsync();
+}
+
+void MidiChat::makeLogFile() {
+    auto now = time(nullptr);
+    auto tm = *localtime(&now);
+    ostringstream timestamp;
+    timestamp << put_time(&tm, "%Y-%m-%d_%H%M");
+    string filename = "log/log_" + timestamp.str() + ".txt";
+
+    logFile.open(filename, ofFile::WriteOnly);
+}
+
+void MidiChat::writeToLogFile(const string& message) {
+    if (logFile.is_open()) {
+        logFile << message << endl << endl;
+    }
+    else {
+        ofLogError("writeToLogFile") << "Log file is not open";
+    }
 }

@@ -28,6 +28,11 @@ public:
 
     ChatThread chat;
     
+    // 保存用のファイル
+    ofFile logFile;
+    void makeLogFile();
+    void writeToLogFile(const string& message);
+
     ofxGoogleIME ime;
     
     shared_ptr<InfoObject> regenerateButton = nullptr;
@@ -57,6 +62,8 @@ R は休符を表します。オクターブなどは無視されますが、長
 コードの場合、+記号を使って複数の音をつなげる。パーカッションは音名の代わりにドラム音を表す音名（C2など、GeneralMidiに準拠した音）を使用する
 [強さ]a-g aが最弱で、g だと最大の強さになる。内部はMidiのvelocityなので、gだと127になる
 [小説の区切り] 区切りは | で表現する。４小説のメロディなら | が3つ入る
+コードの場合、+記号を使って複数の音をつなげます。パーカッションはGeneralMIDIに準拠したノートで、他のパートと同じようにC2などと書く
+[強さ]a-g aが最弱で、g だと最大の強さになります。内部はMidiのvelocityなので、gだと127になる
 
 また、オクターブと長さと強さはそれぞれ直前と同じ場合は省略できる
 exampleのように、なるべく省略形で書く
@@ -66,7 +73,7 @@ example
 省略後 M:C4qgDEdC
 
 以下のメロディを例にするとこうなる
-beat 3/4, 6拍子の長さ
+beat 3/4, 6拍の長さ
 BPM: 80
 
 メロディ: C5の4分音符, D5の8分音符, E5の8分音符, D5の8分音符, C5の4分音符, C5の4分音符, E5の4分音符, E5の4分音符, C5の4分音符, E5の4分音符
