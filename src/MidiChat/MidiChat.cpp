@@ -192,7 +192,7 @@ void MidiChat::regenerate() {
     regenerateButton = nullptr;
 
     writeToLogFile("Regenerate");
-
+    
     chat.regenerateAsync();
 }
 

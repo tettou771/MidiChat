@@ -30,7 +30,9 @@ B:F2qF3|C3qC4|F3qF4|G3qG4
 P:C2qR|RqC2|RqC2|RqC2
 )";
 
-        setCurrentSequence(dummyStr);
+        
+        
+        //setCurrentSequence(dummyStr);
 	}
     
     ofAddListener(Thumbnail::selectedEvents, this, &SequencerView::setNextSequence);
@@ -41,7 +43,7 @@ P:C2qR|RqC2|RqC2|RqC2
 void SequencerView::onUpdate() {
     // シーク
     float x = phase * getWidth();
-    seekBar->setPos(x, 0);
+    if (seekBar) seekBar->setPos(x, 0);
     
     // 踏んでいる音符にフラグを立てる
     int sequenceTimeMs = sequenceTime * 1000;
