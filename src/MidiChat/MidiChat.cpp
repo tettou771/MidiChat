@@ -12,12 +12,12 @@ void MidiChat::onSetup(){
     chatView = make_shared<ChatView>();
     chatView->setAlign(ListBox::Align::FitWidth); // 要素を幅で合わせる
     auto scrollView = make_shared<ScrollView>(ScrollView::FitWidth);
-    scrollView->setRect(ofRectangle(100, 100, 1000, 1000));
+    scrollView->setRect(ofRectangle(60, 60, 900, 800));
     scrollView->setContents(chatView);
     addChild(scrollView);
     
     sequencerView = make_shared<SequencerView>();
-    sequencerView->setRect(ofRectangle(1200, 100, 700, 1000));
+    sequencerView->setRect(ofRectangle(1000, 60, 800, 800));
     addChild(sequencerView);
 
     // chatGPTのapiKey
@@ -58,14 +58,14 @@ void MidiChat::onSetup(){
 #else
     fontName = OF_TTF_SANS;
 #endif
-    ofTrueTypeFontSettings settings(fontName, 20);
+    ofTrueTypeFontSettings settings(fontName, 18);
     settings.addRanges(ofAlphabet::Latin);
     settings.addRanges(ofAlphabet::Japanese);
     settings.addRange(ofUnicode::KatakanaHalfAndFullwidthForms);
     settings.addRange(ofUnicode::range{0x301, 0x303F}); // 日本語の句読点などの記号
     TextArea::font.load(settings);
     
-    ime.setFont(fontName, 20);
+    ime.setFont(fontName, 18);
     ime.enable();
     setWidth(ofGetWidth());
     setHeight(ofGetHeight());
