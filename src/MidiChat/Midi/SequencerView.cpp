@@ -11,29 +11,11 @@ SequencerView::~SequencerView() {
 void SequencerView::onStart() {
 	// make dummy data
 	{
-		string dummyStr = 
-R"(t:4,4,8
-b:100
-M:C4qg,C5qgG4qgG4qgA4qgA4qgG4h
-M:F4qgF4qgE4qgE4qgD4qgD4qgC4h
-B:C3h,C4hG2hG2hA2hA2hG2h
-C:C4q+E4+G4,C5q+E5+G5G4q+B4+D5G4q+B4+D5A4q+C5+E5A4q+C5+E5G4q+B4+D5G4q+B4+D5
-P:C1qgR1qgC1qgR1qgC1qgR1qgC1qgR1qg)";
-
-        
-        dummyStr = R"(
-t:4,4,4
-b:100
-M:C4qmaj,C5qmin,D4qmaj7,D5qmin7|G4q7,G5qdim,A4qaug,A5qdim7|B4qminmaj7,B5q6,E4qmin6,E5qsus2|F4qsus4,F5qadd9,C4qminadd9
-)";
-        
-        dummyStr = R"(
+        string dummyStr = R"(
 t:4,4,4
 b:100
 M:C4q,C4q,E4q,G4q|A4q,A4q,G4q,F4q|E4h.|C4q,C4q,E4q,G4q|A4q,A4q,G4q,F4q|E4h.|C4q,G3q,C4q,G3q|A3q,A3q,G3q,F3q|E3h.
 )";
-
-        
         
         setCurrentSequence(dummyStr);
 	}

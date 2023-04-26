@@ -70,8 +70,6 @@ void MidiChat::onSetup(){
     setWidth(ofGetWidth());
     setHeight(ofGetHeight());
     ime.setPos(20, getHeight() - 100);
-
-    makeLogFile();
 }
 
 void MidiChat::onUpdate(){
@@ -207,10 +205,9 @@ void MidiChat::makeLogFile() {
 }
 
 void MidiChat::writeToLogFile(const string& message) {
-    if (logFile.is_open()) {
-        logFile << message << endl << endl;
+    if (!logFile.is_open()) {
+        makeLogFile();
     }
-    else {
-        ofLogError("writeToLogFile") << "Log file is not open";
-    }
+    
+    logFile << message << endl << endl;
 }
