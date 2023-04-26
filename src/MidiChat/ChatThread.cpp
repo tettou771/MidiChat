@@ -8,7 +8,7 @@ void ChatThread::setup(string model, string apiKey) {
     // setup chatGPT
     chatGPT.setup(apiKey);
     chatGPT.setModel(model);
-    chatGPT.setTemperature(0.3);
+    chatGPT.setTemperature(0.7);
 }
 
 void ChatThread::threadedFunction() {

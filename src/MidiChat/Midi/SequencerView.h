@@ -68,7 +68,7 @@ private:
 	string currentSequenceStr, nextSequenceStr;
 	bool hasNextMidiJson = false;
 	float bpm, sequenceLengthMs;
-    int beatNumerator, beatDenominator, beatLength;
+    int beatNumerator, beatDenominator, numMeasures;
 	vector<Note> notes;
 	ofMutex notesMutex; // 排他制御
 
@@ -90,6 +90,40 @@ private:
 	vector<shared_ptr<Onpu> > onpus;
 	void updateDrawObjectsPosotion();
 
+    // パーサ
+    vector<int> shortenChordNotation(string& noteStr) {
+        
+        map<std::string, vector<int>> chordOffsets = {
+            {"maj7", {0, 4, 7, 11}},
+            {"maj", {0, 4, 7}},
+            {"M", {0, 4, 7}},
+            {"minmaj7", {0, 3, 7, 11}},
+            {"minadd9", {0, 3, 7, 14}},
+            {"min7", {0, 3, 7, 10}},
+            {"min6", {0, 3, 7, 9}},
+            {"min", {0, 3, 7}},
+            {"m", {0, 3, 7}},
+            {"aug", {0, 4, 8}},
+            {"dim7", {0, 3, 6, 9}},
+            {"dim", {0, 3, 6}},
+            {"sus2", {0, 2, 7}},
+            {"sus4", {0, 5, 7}},
+            {"add9", {0, 4, 7, 14}},
+            {"7", {0, 4, 7, 10}},
+            {"6", {0, 4, 7, 9}},
+        };
+
+        for (auto offset : chordOffsets) {
+            if (ofIsStringInString(noteStr, offset.first)) {
+                ofStringReplace(noteStr, offset.first, "");
+                return offset.second;
+            }
+        }
+
+        // 該当なしの場合
+        return vector<int>() = {0};
+    }
+    
 	int noteToMidiPitch(const std::string& note, char octave) {
 		const std::map<std::string, int> noteToMidi = {
 			{"C", 0}, {"C#", 1}, {"D", 2}, {"D#", 3}, {"E", 4}, {"F", 5}, {"F#", 6}, {"G", 7}, {"G#", 8}, {"A", 9}, {"A#", 10}, {"B", 11}
@@ -141,10 +175,10 @@ private:
 		char prevLength = 'q';
 		char prevIntensity = 'g';
 
-		// a/b拍子 n拍子
+		// a/b拍子 n小節
         beatNumerator = 4;
         beatDenominator = 4;
-        beatLength = 4;
+        numMeasures = 4;
 
 		// bpm default
 		bpm = 100;
@@ -163,7 +197,7 @@ private:
 
 				beatNumerator = std::stoi(line.substr(2, first_comma_pos - 2));
 				beatDenominator = std::stoi(line.substr(first_comma_pos + 1, second_comma_pos - first_comma_pos - 1));
-				beatLength = std::stoi(line.substr(second_comma_pos + 1));
+				numMeasures = std::stoi(line.substr(second_comma_pos + 1));
 
 				continue;
 			}
@@ -173,88 +207,97 @@ private:
 				bpm = std::stof(line.substr(2));
 				continue;
 			}
+            
+            // 以下は、各パートの情報
 
 			float currentTimeMs = 0.0;
 			partType = line.substr(0, 2);
 			line = line.substr(2);
 
+            // デフォルト値
             string note = "";
-            char octave = '1';
+            char octave = '3';
             char length = 'q';
             char intensity = 'g';
-            int measureNum = 0; // 何小節目か
+            int measureNum = 0;
 
-            for (int i = 0; i < line.length(); ++i) {
+            // パートの中の1行をパース
+            for (auto measureStr : ofSplitString(line, "|")){
+                measureNum++;
+                // 不要な文字が入っていたら削除
+                // スペース
+                ofStringReplace(measureStr, " ", "");
+                // コロン
+                ofStringReplace(measureStr, ":", "");
+                
 
-				// Extract note
-				if (isupper(line[i])) {
-					note = line[i];
-				}
-                else if (line[i] == '#') {
-                    note += line[i];
-                }
+                for (auto noteStr : ofSplitString(measureStr, ",")) {
+                    int i=0;
+                                        
+                    // Extract note
+                    note = noteStr[i];
+                    ++i;
 
-				// Extract octave if present
-				else if (isdigit(line[i])) {
-					octave = line[i];
-				}
+                    if (line[i] == '#') {
+                        note += noteStr[i];
+                        ++i;
+                    }
 
-				// Extract length if present
-				else if (strchr("whqis", line[i]) != nullptr) {
-					length = line[i];
-				}
+                    // Extract octave if present
+                    if (isdigit(noteStr[i])) {
+                        octave = noteStr[i];
+                        ++i;
+                    } else {
+                        // default
+                        octave = '3';
+                    }
+                    
+                    // ここまでのパースで使った文字列は削除する
+                    noteStr = noteStr.substr(i, noteStr.length() - i);
+                    i=0;
+                    
+                    // Extract code
+                    auto offsets = shortenChordNotation(noteStr);
 
-				// Extract intensity if present
-				else if (strchr("abcdefg", line[i]) != nullptr) {
-					intensity = line[i];
-				}
+                    // Extract length if present
+                    if (strchr("whqis", noteStr[i]) != nullptr) {
+                        length = noteStr[i];
+                        ++i;
+                    }
 
-				// Create the note if next char is next note or end
-                if (i == line.length()-1 || isupper(line[i+1]) || line[i+1] == '+' || line[i+1] == '|') {
+                    // Extract intensity if present
+                    else if (strchr("abcdefg", noteStr[i]) != nullptr) {
+                        intensity = noteStr[i];
+                        ++i;
+                    }
+                    
                     // R は休符なのでNoteを作らない
-                    if (!note.length() == 0 && note[0] != 'R') {
+                    if (!(note.length() == 0) && note[0] != 'R') {
                         float noteLengthMs = noteLengthToMilliseconds(length, bpm);
                         int pitch = noteToMidiPitch(note, octave);
                         int channel = partTypeToMidiChannel(partType);
                         int velocity = intensityToMidiVelocity(intensity);
                         
-                        notes.push_back(Note(currentTimeMs, MIDI_NOTE_ON, pitch, velocity, channel));
-                        notes.push_back(Note(currentTimeMs + noteLengthMs, MIDI_NOTE_OFF, pitch, velocity, channel));
+                        for (auto offset : offsets) {
+                            notes.push_back(Note(currentTimeMs, MIDI_NOTE_ON, pitch + offset, velocity, channel));
+                            notes.push_back(Note(currentTimeMs + noteLengthMs, MIDI_NOTE_OFF, pitch + offset, velocity, channel));
+                        }
                     }
 
-                    // 次の音が和音かどうか
-                    bool harmony = (i < line.length()-1) && (line[i+1] == '+');
+                    // 音符の長さ分シフト
+                    currentTimeMs += noteLengthToMilliseconds(length, bpm);
                     
-                    // 次が小説の区切りかどうか
-                    bool bar = (i < line.length()-1) && (line[i+1] == '|');
-                    
-                    // 和音なら currentTimeMs を移動しない
-                    // ++iするのは、そのプラスを無視するため
-                    if (harmony) {
-                        ++i;
-                    }
-                    
-                    // 次が小説の区切りなら、そのタイミングにスキップする
-                    else if (bar) {
-                        ++measureNum;
-                        currentTimeMs = measureNum * 60000. * beatNumerator / bpm;
-                        ++i;
-                    }
-                    
-                    // 和音じゃなかったら次のタイミングにオフセットする
-                    else {
-                        // 音符の長さ分シフト
-                        //currentTimeMs += noteLengthToMilliseconds(length, bpm);
-                        
-                        // 1拍分シフト
-                        currentTimeMs += 60000. / bpm;
-                    }
-                }
-			}
+                    // 1拍分シフト
+                    //currentTimeMs += 60000. / bpm;
+
+                } // note end
+
+                currentTimeMs = measureNum * 60000. * beatNumerator / bpm;
+            } // measure end
 		}
 
-		// 拍子の数がシーケンス全体の長さになる
-		sequenceLengthMs = 60000. * beatLength / bpm;
+		// 小節の数がシーケンス全体の長さになる
+		sequenceLengthMs = 60000. * numMeasures * beatDenominator / bpm;
 	}
 
 };

@@ -22,17 +22,20 @@ P:C1qgR1qgC1qgR1qgC1qgR1qgC1qgR1qg)";
 
         
         dummyStr = R"(
-t:3,4,12
-b:120
-C:C4i+C5G4+G5|C4+C5G4+G5|F4+F5C4+C5|G4+G5D4+D5
-M:C5qE5iG5|C5iE5iG5i|D5qF5iA5|D5iF5iA5i
-B:F2qF3|C3qC4|F3qF4|G3qG4
-P:C2qR|RqC2|RqC2|RqC2
+t:4,4,4
+b:100
+M:C4qmaj,C5qmin,D4qmaj7,D5qmin7|G4q7,G5qdim,A4qaug,A5qdim7|B4qminmaj7,B5q6,E4qmin6,E5qsus2|F4qsus4,F5qadd9,C4qminadd9
+)";
+        
+        dummyStr = R"(
+t:4,4,4
+b:100
+M:C4q,C4q,E4q,G4q|A4q,A4q,G4q,F4q|E4h.|C4q,C4q,E4q,G4q|A4q,A4q,G4q,F4q|E4h.|C4q,G3q,C4q,G3q|A3q,A3q,G3q,F3q|E3h.
 )";
 
         
         
-        //setCurrentSequence(dummyStr);
+        setCurrentSequence(dummyStr);
 	}
     
     ofAddListener(Thumbnail::selectedEvents, this, &SequencerView::setNextSequence);
@@ -78,8 +81,8 @@ void SequencerView::onDraw() {
     
     // 小節ごとに線を引く
     ofSetColor(100);
-    for (int i=beatNumerator; i<beatLength; i+=beatNumerator) {
-        int ix = i * getWidth() / beatLength;
+    for (int i=1; i<numMeasures; ++i) {
+        int ix = i * getWidth() / numMeasures;
         ofDrawLine(ix, 0, ix, getHeight());
     }
     
@@ -87,7 +90,7 @@ void SequencerView::onDraw() {
     ofSetColor(200);
     stringstream ss;
     ss << "BPM " << ofToString(bpm, 0) << endl;
-    ss << "Beat " << beatNumerator << "/" << beatDenominator << " " << beatLength << "beats" << endl;
+    ss << "Beat " << beatNumerator << "/" << beatDenominator << " " << numMeasures << "beats" << endl;
     ss << "Note " << notes.size() << endl;
     ss << "Onpu " << onpus.size() << endl;
     ofDrawBitmapString(ss.str(), 4, 20);
@@ -118,7 +121,7 @@ void SequencerView::start() {
 	sequenceTime = 0;
 	pastSequenceTime = -1; // 再生開始時にゼロ秒のnoteを再生するためにマイナスの値にしておく
 	sequenceCount = 0;
-    beatLength = 4;
+    numMeasures = 4;
     beatNumerator = 4;
     beatDenominator = 4;
 
