@@ -17,8 +17,10 @@ void MidiChat::onSetup(){
     addChild(scrollView);
     
     sequencerView = make_shared<SequencerView>();
-    sequencerView->setRect(ofRectangle(1000, 60, 860, 800));
-    addChild(sequencerView);
+    auto scrollView2 = make_shared<ScrollView>(ScrollView::FitWidth);
+    scrollView2->setRect(ofRectangle(1000, 60, 860, 800));
+    scrollView2->setContents(sequencerView);
+    addChild(scrollView2);
 
     // chatGPTのapiKey
     ofJson configJson = ofLoadJson("config.json");

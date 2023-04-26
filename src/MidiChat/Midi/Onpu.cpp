@@ -39,7 +39,7 @@ void Onpu::updateSize() {
     // ピッチあたりの高さ
     float pitchHeight = p->getHeight() / pitchNum;
 
-    rect.y = p->getHeight() - (begin->pitch - pitchOffset) * pitchHeight;
+    rect.y = p->getHeight() - (begin->pitch) * pitchHeight;
     rect.height = pitchHeight;
 
     setRect(rect);

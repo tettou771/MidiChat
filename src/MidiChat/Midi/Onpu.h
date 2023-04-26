@@ -18,7 +18,6 @@ public:
     // 今鳴らしている最中かどうか（描画用のフラグ）
     bool isPlaying = false;
     
-    // 鍵盤の表示範囲
-    static const int pitchNum = 80;
-    static const int pitchOffset = 30;
+    // 鍵盤の数
+    static const int pitchNum = 128;
 };

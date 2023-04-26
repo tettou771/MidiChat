@@ -40,7 +40,6 @@ public:
 
 	int getSequenceCount() { return sequenceCount; }
 	bool getSentThisFrame() { bool b = sentOsc; sentOsc = false; return b; }
-	static const int quantizeNum = 16;
 
 private:
 	float now; // 今の時刻
@@ -49,8 +48,6 @@ private:
 	float pastUpdatedTime; // 前回threadedFunctionを実行した時刻
 	float sequenceTime, pastSequenceTime; // シーケンスの時刻 sec
 	int sequenceCount; // シーケンスのループが何周目か
-
-	ofMutex phaseMutex;
 
 	// MIDI関連
 	ofxMidiOut midiOut;
@@ -89,6 +86,7 @@ private:
 	shared_ptr<SeekBar> seekBar;
 	vector<shared_ptr<Onpu> > onpus;
 	void updateDrawObjectsPosotion();
+    ofMutex onpuMutex;
 
     // パーサ
     vector<int> shortenChordNotation(string& noteStr) {
@@ -126,7 +124,7 @@ private:
     
 	int noteToMidiPitch(const std::string& note, char octave) {
 		const std::map<std::string, int> noteToMidi = {
-			{"C", 0}, {"C#", 1}, {"D", 2}, {"D#", 3}, {"E", 4}, {"F", 5}, {"F#", 6}, {"G", 7}, {"G#", 8}, {"A", 9}, {"A#", 10}, {"B", 11}
+            {"C", 0}, {"C#", 1}, {"Db", 1}, {"D", 2}, {"D#", 3}, {"Eb", 3}, {"E", 4}, {"F", 5}, {"F#", 6}, {"Gb", 6}, {"G", 7}, {"G#", 8}, {"Ab", 8}, {"A", 9}, {"A#", 10}, {"Bb", 10}, {"B", 11}
 		};
 
 		int midiPitch = 0; // ノートが見つからない場合のデフォルト値
@@ -223,6 +221,8 @@ private:
 
             // パートの中の1行をパース
             for (auto measureStr : ofSplitString(line, "|")){
+                if (measureStr == "") continue;
+                
                 measureNum++;
                 // 不要な文字が入っていたら削除
                 // スペース
@@ -238,7 +238,7 @@ private:
                     note = noteStr[i];
                     ++i;
 
-                    if (line[i] == '#') {
+                    if (noteStr[i] == '#' || noteStr[i] == 'b') {
                         note += noteStr[i];
                         ++i;
                     }
