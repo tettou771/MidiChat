@@ -84,19 +84,43 @@ void MessageObject::onDraw() {
 	TextArea::font.drawString(role, 100, 40);
 }
 
-bool MessageObject::extractSequence(const std::string& content, std::string& sequenceStr) {
-	std::istringstream contentStream(content);
-	std::string line;
+bool MessageObject::extractSequence(const string& content, string& sequenceStr) {
+	istringstream contentStream(content);
+	string line;
 	bool inSequence = false;
 
-	while (std::getline(contentStream, line)) {
-		if (line.find("```") != std::string::npos) {
+	while (getline(contentStream, line)) {
+		if (line.find("```") != string::npos) {
 			inSequence = !inSequence;
+            if (!inSequence) break;
 		}
 		else if (inSequence) {
 			sequenceStr += line + "\n";
 		}
 	}
+    
+    // コードブロックがないとき
+    // "t:" という文字列で始まるかどうかを確かめて、そこからシーケンスとみなす
+    inSequence = false;
+    if (sequenceStr.empty()) {
+        // 再度読み込み
+        contentStream = istringstream(content);
+        while (getline(contentStream, line)) {
+            if (line.length() > 2 && line.substr(0, 2) == "t:") {
+                inSequence = true;
+            }
+            
+            if (inSequence) {
+                if (line.length() == 0) {
+                    inSequence = false;
+                    break;
+                }
+                else {
+                    sequenceStr += line + "\n";
+                }
+            }
+        }
+    }
 
 	return !sequenceStr.empty();
 }

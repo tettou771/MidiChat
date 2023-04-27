@@ -167,11 +167,6 @@ private:
 	void makeNotes(const std::string& sequenceStr, std::vector<Note>& notes, float& bpm) {
 		istringstream iss(sequenceStr);
 		string line;
-		string partType = "P";
-		string prevNote = "C";
-		string prevOctave = "4";
-		char prevLength = 'q';
-		char prevIntensity = 'g';
 
 		// a/b拍子 n小節
         beatNumerator = 4;
@@ -184,7 +179,7 @@ private:
 		sequenceLengthMs = 0;
 
 		while (std::getline(iss, line)) {
-			if (line.empty()) {
+			if (line.length() < 2) {
 				continue;
 			}
 
@@ -209,8 +204,12 @@ private:
             // 以下は、各パートの情報
 
 			float currentTimeMs = 0.0;
-			partType = line.substr(0, 2);
-			line = line.substr(2);
+            string partType = "M"; // 名前がなければ M パートとみなす
+            // コロンがあれば、それをパートタイプとする
+            if (line[1] == ':') {
+                partType = line.substr(0, 2);
+                line = line.substr(2);
+            }
 
             // デフォルト値
             string note = "";
