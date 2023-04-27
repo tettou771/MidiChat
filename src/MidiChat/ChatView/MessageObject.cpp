@@ -101,23 +101,12 @@ bool MessageObject::extractSequence(const string& content, string& sequenceStr) 
     
     // コードブロックがないとき
     // "t:" という文字列で始まるかどうかを確かめて、そこからシーケンスとみなす
-    inSequence = false;
     if (sequenceStr.empty()) {
         // 再度読み込み
         contentStream = istringstream(content);
         while (getline(contentStream, line)) {
-            if (line.length() > 2 && line.substr(0, 2) == "t:") {
-                inSequence = true;
-            }
-            
-            if (inSequence) {
-                if (line.length() == 0) {
-                    inSequence = false;
-                    break;
-                }
-                else {
-                    sequenceStr += line + "\n";
-                }
+            if (line.length() > 2 && line[1] == ':') {
+                sequenceStr += line + "\n";
             }
         }
     }

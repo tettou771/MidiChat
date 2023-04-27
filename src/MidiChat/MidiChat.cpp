@@ -60,18 +60,18 @@ void MidiChat::onSetup(){
 #else
     fontName = OF_TTF_SANS;
 #endif
-    ofTrueTypeFontSettings settings(fontName, 18);
+    ofTrueTypeFontSettings settings(fontName, 32);
     settings.addRanges(ofAlphabet::Latin);
     settings.addRanges(ofAlphabet::Japanese);
     settings.addRange(ofUnicode::KatakanaHalfAndFullwidthForms);
     settings.addRange(ofUnicode::range{0x301, 0x303F}); // 日本語の句読点などの記号
     TextArea::font.load(settings);
     
-    ime.setFont(fontName, 18);
+    ime.setFont(fontName, 36);
     ime.enable();
     setWidth(ofGetWidth());
     setHeight(ofGetHeight());
-    ime.setPos(20, getHeight() - 100);
+    ime.setPos(250, getHeight() - 80);
 }
 
 void MidiChat::onUpdate(){
@@ -117,7 +117,24 @@ void MidiChat::onUpdate(){
                 writeToLogFile("Regenerate");
                 chat.regenerateAsync();
 
+                string message = "Regenerating...";
+                auto info = make_shared<InfoObject>(message, ofColor(255, 255, 0));
+                chatView->addElement(info);
             }
+            
+            // Timeoutなら、自動的にリトライする
+            else if (errorCode == ofxChatGPT::ErrorCode::Timeout) {
+                // regenerate
+                ofLogNotice("MidiChat") << "Regenerate";
+                chatView->deleteLastAssistantMessage();
+                writeToLogFile("Regenerate");
+                chat.regenerateAsync();
+
+                string message = "Regenerating...";
+                auto info = make_shared<InfoObject>(message, ofColor(255, 255, 0));
+                chatView->addElement(info);
+            }
+            
             // その他のエラーなら、Regenerateボタンを表示
             else {
                 writeToLogFile(message);
@@ -166,7 +183,7 @@ void MidiChat::onKeyPressed(ofKeyEventArgs &key) {
 void MidiChat::onLocalMatrixChanged() {
     setWidth(ofGetWidth());
     setHeight(ofGetHeight());
-    ime.setPos(20, getHeight() - 200);
+    ime.setPos(200, getHeight() - 180);
 }
 
 void MidiChat::sendMessage() {
