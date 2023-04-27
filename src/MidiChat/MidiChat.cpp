@@ -104,12 +104,28 @@ void MidiChat::onUpdate(){
             string message = "Error: " + ofxChatGPT::getErrorMessage(errorCode);
             auto info = make_shared<InfoObject>(message, ofColor(255, 50, 0));
             chatView->addElement(info);
+            
+            // エラー内容がBadRequestだったら、文字数オーバーの可能性があるのでメッセージ履歴を一部削除する
+            if (errorCode == ofxChatGPT::ErrorCode::BadRequest) {
+                ofLogNotice("MidiChat") << "Delete oldest 2 messages";
+                // 履歴をちょっと消す
+                chat.getChatGPT().eraseConversation(1, 3);
 
-            writeToLogFile(message);
+                // regenerate
+                ofLogNotice("MidiChat") << "Regenerate";
+                chatView->deleteLastAssistantMessage();
+                writeToLogFile("Regenerate");
+                chat.regenerateAsync();
 
-            regenerateButton = make_shared<InfoObject>("Regenerate", ofColor(255, 255, 0));
-            chatView->addElement(regenerateButton);
-            ofAddListener(regenerateButton->mousePressedOverComponentEvents, this, &MidiChat::regenerate);
+            }
+            // その他のエラーなら、Regenerateボタンを表示
+            else {
+                writeToLogFile(message);
+                
+                regenerateButton = make_shared<InfoObject>("Regenerate", ofColor(255, 255, 0));
+                chatView->addElement(regenerateButton);
+                ofAddListener(regenerateButton->mousePressedOverComponentEvents, this, &MidiChat::regenerate);
+            }
         }
     }
 }
@@ -183,14 +199,13 @@ void MidiChat::sendMessage() {
 
 void MidiChat::regenerate() {
     ofLogNotice("MidiChat") << "Regenerate";
-    
-    // 一旦、最後のメッセージがassistantだったら削除する
-    chatView->deleteLastAssistantMessage();
-    
+        
     ofRemoveListener(regenerateButton->mousePressedOverComponentEvents, this, &MidiChat::regenerate);
     regenerateButton->destroy();
     regenerateButton = nullptr;
 
+    chatView->deleteLastAssistantMessage();
+    
     writeToLogFile("Regenerate");
     
     chat.regenerateAsync();

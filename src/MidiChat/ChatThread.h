@@ -32,6 +32,8 @@ public:
     // If a message is available, it can be retrieved
     // Retrieved messages are removed from the list
     tuple<string, ofxChatGPT::ErrorCode> getMessage();
+    
+    ofxChatGPT& getChatGPT() {return chatGPT;}
 
 private:
     ofxChatGPT chatGPT;

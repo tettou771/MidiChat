@@ -232,6 +232,8 @@ private:
                 
 
                 for (auto noteStr : ofSplitString(measureStr, ",")) {
+                    if (noteStr == "") continue;
+                    
                     int i=0;
                                         
                     // Extract note

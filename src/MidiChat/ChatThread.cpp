@@ -62,9 +62,6 @@ void ChatThread::chatWithHistoryAsync(string msg) {
 void ChatThread::regenerateAsync() {
     if (isThreadRunning()) return;
 
-    // 履歴をちょっと消す
-    chatGPT.eraseConversation(1, 3);
-
     type = Regenerate;
     ofLogNotice("Chat") << "regenerateAsync";
     startThread();

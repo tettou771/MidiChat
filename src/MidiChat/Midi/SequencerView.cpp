@@ -13,8 +13,11 @@ void SequencerView::onStart() {
 	{
         string dummyStr = R"(
 t:4,4,4
-b:100
-M:C4q,C4q,E4q,G4q|A4q,A4q,G4q,F4q|E4h.|C4q,C4q,E4q,G4q|A4q,A4q,G4q,F4q|E4h.|C4q,G3q,C4q,G3q|A3q,A3q,G3q,F3q|E3h.
+b:130
+C:C4qmin|C4qmin|C4qmin|C4qmin
+M:G4q,Rq,D5q,Rq,G5q,Rq,D6q,Rq|C#5q,Rq,G#5q,Rq,C#6q,Rq,G#6q,Rq|G4q,Rq,D5q,Rq,G5q,Rq,D6q,Rq|C#5q,Rq,G#5q,Rq,C#6q,Rq,G#6q,Rq
+B:C3q,C3q,C3q,C3q|C3q,C3q,C3q,C3q|C3q,C3q,C3q,C3q|C3q,C3q,C3q,C3q
+P:G3q,Rq,|G3q,Rq,|G3q,Rq,|G3q,Rq,|G3q,Rq,|G3q,Rq,|G3q,Rq,|G3q,Rq,|
 )";
         
         setCurrentSequence(dummyStr);
