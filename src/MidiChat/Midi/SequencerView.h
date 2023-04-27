@@ -91,7 +91,7 @@ private:
     // パーサ
     vector<int> shortenChordNotation(string& noteStr) {
         
-        map<std::string, vector<int>> chordOffsets = {
+        tuple<string, vector<int>> chordOffsets[] = {
             {"maj7", {0, 4, 7, 11}},
             {"maj", {0, 4, 7}},
             {"M", {0, 4, 7}},
@@ -100,6 +100,7 @@ private:
             {"min7", {0, 3, 7, 10}},
             {"min6", {0, 3, 7, 9}},
             {"min", {0, 3, 7}},
+            {"mi", {0, 3, 7}},
             {"m", {0, 3, 7}},
             {"aug", {0, 4, 8}},
             {"dim7", {0, 3, 6, 9}},
@@ -112,9 +113,9 @@ private:
         };
 
         for (auto offset : chordOffsets) {
-            if (ofIsStringInString(noteStr, offset.first)) {
-                ofStringReplace(noteStr, offset.first, "");
-                return offset.second;
+            if (ofIsStringInString(noteStr, get<0>(offset))) {
+                ofStringReplace(noteStr, get<0>(offset), "");
+                return get<1>(offset);
             }
         }
 
@@ -204,7 +205,7 @@ private:
             // 以下は、各パートの情報
 
 			float currentTimeMs = 0.0;
-            string partType = "M"; // 名前がなければ M パートとみなす
+            string partType = "M:"; // 名前がなければ M パートとみなす
             // コロンがあれば、それをパートタイプとする
             if (line[1] == ':') {
                 partType = line.substr(0, 2);
@@ -261,13 +262,13 @@ private:
                     auto offsets = shortenChordNotation(noteStr);
 
                     // Extract length if present
-                    if (strchr("whqis", noteStr[i]) != nullptr) {
+                    if (noteStr.length() > i && strchr("whqis", noteStr[i]) != nullptr) {
                         length = noteStr[i];
                         ++i;
                     }
 
                     // Extract intensity if present
-                    else if (strchr("abcdefg", noteStr[i]) != nullptr) {
+                    else if (noteStr.length() > i && strchr("abcdefg", noteStr[i]) != nullptr) {
                         intensity = noteStr[i];
                         ++i;
                     }

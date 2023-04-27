@@ -40,5 +40,5 @@ void Thumbnail::onDraw() {
 
 void Thumbnail::onMousePressedOverComponent(ofMouseEventArgs &mouse) {
     ofNotifyEvent(selectedEvents, sequenceStr);
-    ofSetClipboardString("```\n" + sequenceStr + "\n```");
+    ofSetClipboardString(sequenceStr);
 }

@@ -39,7 +39,7 @@ void ChatView::addMessage(ofJson message) {
     // メッセージを追加するたびに下にスクロールする
     auto view = getParent()->getThisAs<ScrollView>();
     if (view) {
-        view->scrollY(100);
+        view->scrollY(-100);
     }
 }
 

@@ -13,14 +13,14 @@ void SequencerView::onStart() {
 	{
         string dummyStr = R"(
 t:4,4,4
-b:130
-C:C4qmin|C4qmin|C4qmin|C4qmin
-M:G4q,Rq,D5q,Rq,G5q,Rq,D6q,Rq|C#5q,Rq,G#5q,Rq,C#6q,Rq,G#6q,Rq|G4q,Rq,D5q,Rq,G5q,Rq,D6q,Rq|C#5q,Rq,G#5q,Rq,C#6q,Rq,G#6q,Rq
-B:C3q,C3q,C3q,C3q|C3q,C3q,C3q,C3q|C3q,C3q,C3q,C3q|C3q,C3q,C3q,C3q
-P:G3q,Rq,|G3q,Rq,|G3q,Rq,|G3q,Rq,|G3q,Rq,|G3q,Rq,|G3q,Rq,|G3q,Rq,|
+b:100
+M:C5q,E5,G5,B5|C5,E5,G5,B5|C5,E5,G5,B5|C5,E5,G5,B5
+B:C2q,C2,C2,C2|C2,C2,C2,C2|D2,D2,D2,D2|D2,D2,D2,D2
+C:Cmajq,Dmi,Em,Fmaj|Gmaj,Ami,Bmi,Cmaj|Dmi,Em,Fmaj,Gmaj|Ami,Bmi,Cmaj,Dmi
+P:C2f,D2,R,R|C2,D2,R,R|C2,D2,R,R|C2,D2,R,R
 )";
         
-        setCurrentSequence(dummyStr);
+        //setCurrentSequence(dummyStr);
 	}
     
     ofAddListener(Thumbnail::selectedEvents, this, &SequencerView::setNextSequence);
