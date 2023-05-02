@@ -13,11 +13,8 @@ void SequencerView::onStart() {
 	{
         string dummyStr = R"(
 t:4,4,4
-b:100
-M:C5q,E5,G5,B5|C5,E5,G5,B5|C5,E5,G5,B5|C5,E5,G5,B5
-B:C2q,C2,C2,C2|C2,C2,C2,C2|D2,D2,D2,D2|D2,D2,D2,D2
-C:Cmajq,Dmi,Em,Fmaj|Gmaj,Ami,Bmi,Cmaj|Dmi,Em,Fmaj,Gmaj|Ami,Bmi,Cmaj,Dmi
-P:C2f,D2,R,R|C2,D2,R,R|C2,D2,R,R|C2,D2,R,R
+b:90
+C:C7q, D7, Emin7, Fmaj7|Gmaj7, Amin7, Bmin7, Cmaj7|Dmin7, Emin7, Fmaj7, Gmaj7|Amin7, Bmin7, Cmaj7, Dmin7
 )";
         
         //setCurrentSequence(dummyStr);
@@ -160,7 +157,11 @@ void SequencerView::setNextSequence(string& sequenceStr) {
 }
 
 void SequencerView::setCurrentSequence(string& sequenceStr) {
-
+    if (currentSequenceStr == "") {
+        phase = sequenceTime = 0;
+        pastSequenceTime = 0;
+    }
+    
     currentSequenceStr = sequenceStr;
     
     // set sequence data

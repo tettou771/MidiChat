@@ -158,9 +158,9 @@ void MidiChat::onDraw(){
     if (whisper.isRecording()) {
         ofVec2f p;
         p.x = getWidth() / 2;
-        p.y = getHeight() - 100;
-        ofSetColor(sin(ofGetElapsedTimef() * 2) * 100 + 155, 0, 0);
-        ofDrawCircle(p, 50);
+        p.y = getHeight() - 60;
+        ofSetColor(sin(ofGetElapsedTimef() * 3) * 50 + 205, 0, 0);
+        ofDrawCircle(p, 40);
     }
 }
 

@@ -238,6 +238,9 @@ private:
                     
                     int i=0;
                                         
+                    // Extract code
+                    auto offsets = shortenChordNotation(noteStr);
+
                     // Extract note
                     note = noteStr[i];
                     ++i;
@@ -260,8 +263,6 @@ private:
                     noteStr = noteStr.substr(i, noteStr.length() - i);
                     i=0;
                     
-                    // Extract code
-                    auto offsets = shortenChordNotation(noteStr);
 
                     // Extract length if present
                     if (noteStr.length() > i && strchr("whqis", noteStr[i]) != nullptr) {
@@ -301,7 +302,7 @@ private:
 		}
 
 		// 小節の数がシーケンス全体の長さになる
-		sequenceLengthMs = 60000. * numMeasures * beatDenominator / bpm;
+		sequenceLengthMs = 60000. * numMeasures * beatNumerator / bpm;
 	}
 
 };
