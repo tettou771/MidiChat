@@ -1,6 +1,11 @@
+ofxAudioFile
 ofxChatGPT
 ofxComponent
 ofxComponentUI
-ofxGoogleIME
+ofxGui
+ofxHttpUtils
 ofxMidi
 ofxOsc
+ofxPoco
+ofxSoundObjects
+ofxWhisper

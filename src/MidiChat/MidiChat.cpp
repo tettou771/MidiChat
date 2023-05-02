@@ -5,6 +5,8 @@ MidiChat::MidiChat() {
 }
 
 void MidiChat::onSetup(){
+    setRect(ofRectangle(0, 0, ofGetWidth(), ofGetHeight()));
+    
     //ofSetLogLevel(OF_LOG_VERBOSE);
     ofSetLogLevel(OF_LOG_NOTICE);
     
@@ -33,17 +35,17 @@ void MidiChat::onSetup(){
     ofxChatGPT::ErrorCode err;
     tie(models, err) = chappy.getModelList();
     ofLogNotice("MidiChat") << "Available OpenAI GPT models:";
-    for (auto model : models) {
+    string model = "gpt-3.5-turbo"; // default model
+    for (auto m : models) {
         // GPT系のモデルだけをリストアップ
-        if (ofIsStringInString(model, "gpt")) {
-            ofLogNotice("MidiChat") << model;
+        // もしgpt-4があればそれを使う
+        if (ofIsStringInString(m, "gpt")) {
+            ofLogNotice("MidiChat") << m;
+            if (m == "gpt-4") model = "gpt-4";
         }
     }
 
     // セットする
-    string model = "gpt-3.5-turbo";
-    //string model = "gpt-4";
-
     chat.setup(model, apiKey);
     chat.setSystemMessage(GPT_Prompt());
     
@@ -67,11 +69,10 @@ void MidiChat::onSetup(){
     settings.addRange(ofUnicode::range{0x301, 0x303F}); // 日本語の句読点などの記号
     TextArea::font.load(settings);
     
-    ime.setFont(fontName, 36);
-    ime.enable();
-    setWidth(ofGetWidth());
-    setHeight(ofGetHeight());
-    ime.setPos(250, getHeight() - 80);
+    whisper.setup(apiKey);
+    int soundDeviceID = 1;
+    whisper.setupRecorder(soundDeviceID);
+    whisper.setLanguage("ja");
 }
 
 void MidiChat::onUpdate(){
@@ -145,51 +146,45 @@ void MidiChat::onUpdate(){
             }
         }
     }
+    
+    // whisper task
+    while (whisper.hasTranscript()) {
+        string newMessage = whisper.getNextTranscript();
+        sendMessage(newMessage);
+    }
 }
 
 void MidiChat::onDraw(){
-
-    /*
-    // Display the conversation on the screen.
-    stringstream conversationText;
-    // Iterate through the conversation messages and build the display text.
-    for (const ofJson &message : chatGPT.getConversation()) {
-        conversationText << message["role"] << ": " << message["content"] << "\n";
+    if (whisper.isRecording()) {
+        ofVec2f p;
+        p.x = getWidth() / 2;
+        p.y = getHeight() - 100;
+        ofSetColor(sin(ofGetElapsedTimef() * 2) * 100 + 155, 0, 0);
+        ofDrawCircle(p, 50);
     }
-    // Draw the conversation text on the screen.
-    ofDrawBitmapString("conversation:\n" + conversationText.str(), 20, 70);
-     */
-
 }
 
 void MidiChat::onKeyPressed(ofKeyEventArgs &key) {
-    if (key.key == OF_KEY_RETURN && ofGetKeyPressed(OF_KEY_CONTROL)) {
-        // IMEで改行されないようにnullを入れておく
-        key.key = '\0';
-        
-        // Ignore if text is empty.
-        if (ime.getString() == "") {
-            return;
+    if (key.key == ' ') {
+        if (whisper.isRecording()) {
+            whisper.stopRecording();
         }
-        
-        // 返信待ちなら送信できないタイミング
-        if (chat.isWaiting()) return;
-
-        // メッセージを送信してIMEをクリア
-        sendMessage();
+        else if (!chat.isWaiting()) {
+            whisper.startRecording();
+        }
     }
 }
 
 void MidiChat::onLocalMatrixChanged() {
     setWidth(ofGetWidth());
     setHeight(ofGetHeight());
-    ime.setPos(200, getHeight() - 180);
 }
 
-void MidiChat::sendMessage() {
+void MidiChat::sendMessage(string& message) {
+    if (message == "") return;
+    
     // send to chatgpt
     ofxChatGPT::ErrorCode errorCode;
-    string message = ime.getString();
 
     // chat data
     ofJson newUserMsg;
@@ -210,8 +205,6 @@ void MidiChat::sendMessage() {
 
     writeToLogFile("User:");
     writeToLogFile(message);
-    
-    ime.clear();
 }
 
 void MidiChat::regenerate() {

@@ -1,9 +1,9 @@
 #pragma once
 #include "ofxComponentUI.h"
+#include "ofxWhisper.h"
 #include "ChatThread.h"
 #include "Midi/SequencerView.h"
 #include "ChatView/ChatView.h"
-#include "ofxGoogleIME.h"
 
 using namespace ofxComponent;
 
@@ -19,8 +19,8 @@ public:
     shared_ptr<SequencerView> sequencerView;
     shared_ptr<ChatView> chatView;
     
-    // メッセージを送信してIMEをクリア
-    void sendMessage();
+    // メッセージを送信
+    void sendMessage(string& message);
     
     // 応答がないときに再送するためのメソッド
     // すでにassistantから返信があった場合は、それは削除される
@@ -33,7 +33,8 @@ public:
     void makeLogFile();
     void writeToLogFile(const string& message);
 
-    ofxGoogleIME ime;
+    // whisper
+    ofxWhisper whisper;
     
     shared_ptr<InfoObject> regenerateButton = nullptr;
 private:

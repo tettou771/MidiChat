@@ -9,6 +9,7 @@ void ChatThread::setup(string model, string apiKey) {
     chatGPT.setup(apiKey);
     chatGPT.setModel(model);
     chatGPT.setTemperature(0.7);
+    chatGPT.setTimeoutSec(60); // タイムアウトを長めに60秒とする
 }
 
 void ChatThread::threadedFunction() {

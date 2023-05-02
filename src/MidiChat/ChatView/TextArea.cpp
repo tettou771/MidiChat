@@ -1,6 +1,11 @@
 #include "MessageObject.h"
 
 ofTrueTypeFont TextArea::font;
+#ifdef WIN32
+wstring_convert<codecvt_utf8<uint32_t>, uint32_t> TextArea::convert8_32;
+#else
+std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> TextArea::convert8_32;
+#endif
 
 void TextArea::onStart() {
 }
@@ -21,7 +26,7 @@ void TextArea::onUpdate() {
 	int expectedNum = MIN((int)u32message.length(), cps * elapsedTime);
 
 	for (int i = delayTextIndex; i < expectedNum; ++i) {
-		string s = ofxGoogleIME::UTF32toUTF8(u32message[i]);
+		string s = UTF32toUTF8(u32message[i]);
 		float w = font.stringWidth(message + s);
 		if (w > getWidth()) {
 			message += '\n' + s;
@@ -49,10 +54,10 @@ void TextArea::onDraw() {
 }
 
 void TextArea::setString(string& str) {
-	u32message = ofxGoogleIME::UTF8toUTF32(str);
+	u32message = UTF8toUTF32(str);
 	message = "";
 	for (int i = 0; i < u32message.size(); ++i) {
-		string s = ofxGoogleIME::UTF32toUTF8(u32message[i]);
+		string s = UTF32toUTF8(u32message[i]);
 		float w = font.stringWidth(message + s);
 		if (w > getWidth()) {
 			message += '\n' + s;
@@ -68,7 +73,7 @@ void TextArea::setString(string& str) {
 }
 
 void TextArea::setStringDelay(string& str) {
-	u32message = ofxGoogleIME::UTF8toUTF32(str);
+	u32message = UTF8toUTF32(str);
 	startTime = ofGetElapsedTimef();
 	delayText = true;
 	delayTextIndex = 0;
