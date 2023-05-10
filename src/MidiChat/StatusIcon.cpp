@@ -13,6 +13,7 @@ void StatusIcon::onDraw() {
     // circle
     ofSetColor(bgColor);
     ofFill();
+    ofSetCircleResolution(40);
     ofDrawCircle(getWidth()/2, getHeight()/2, getWidth()/2);
     // draw outline (antialiasing)
     ofNoFill();
@@ -24,9 +25,68 @@ void StatusIcon::onDraw() {
         float margin = getWidth() * 0.14;
         currentIcon->draw(margin, margin, getWidth() - margin * 2, getHeight() - margin * 2);
     }
+    
+    // loading indicator
+    if (loadingIndicatorShowing) {
+        float time = ofGetElapsedTimef() - loadingIndicatorBeginTime;
+        const int dotNum = 10;
+        
+        float duration = 5;
+        float t = fmod(time, duration) / duration;
+        // ドットの半径
+        float rMax = 5;
+        // ドットの軌道の半径
+        float R = getWidth() * 0.65;
+        // ドットが出てくる角度
+        float theta1 = ofMap(t, 0, 0.3, 0, TAU);
+        // ドットが消える角度
+        float theta2 = ofMap(t, 0.4, 0.75, 0, TAU);
+        ofVec2f center(getWidth() / 2, getHeight() / 2);
+        // ドットの色
+        ofSetColor(200);
+        ofFill();
+        
+        for (int i=0; i<dotNum; ++i) {
+            float dotTheta = (float)i / dotNum * TAU;
+            if (theta2 <= dotTheta && dotTheta <= theta1) {
+                float s = MIN(1, MIN(abs(dotTheta - theta2), abs(dotTheta - theta1)) / TAU * 5);
+                if (s > 0) {
+                    float r = s * rMax;
+                    ofVec2f p = center;
+                    p.x += R * sin(dotTheta);
+                    p.y += -R * cos(dotTheta);
+                    ofDrawCircle(p, r);
+                }
+            }
+        }
+        
+        /*
+        for (int i=0; i<dotNum; ++i) {
+            float dotTheta = (float)(i + 1) / dotNum * TAU;
+            if (theta2 <= dotTheta && dotTheta <= theta1) {
+                float s = MIN(1, MIN(abs(dotTheta - theta2), abs(dotTheta - theta1)) / TAU * 5);
+                if (s > 0) {
+                    int N = MAX(2, s * 5);
+                    float drawTheta = s * TAU / dotNum;
+                    ofBeginShape();
+                    for (int j=0; j <= N; ++j) {
+                        float th = -drawTheta * j / N;
+                        ofVec2f p = center;
+                        p.x += R * sin(dotTheta + th);
+                        p.y += -R * cos(dotTheta + th);
+                        ofVertex(p);
+                    }
+                    ofEndShape(OF_PRIMITIVE_LINES);
+                }
+            }
+        }
+         */
+    }
 }
 
 void StatusIcon::setStatus(MidiChatStatus next) {
+    bool loadingIndicatorNext = false;
+    
     switch (next) {
     case WaitingForUser:
         currentIcon = &micIcon;
@@ -42,11 +102,13 @@ void StatusIcon::setStatus(MidiChatStatus next) {
         currentIcon = &chatgptIcon;
         iconColor = ofColor::white;
         bgColor = ofColor(10, 80, 180);
+        loadingIndicatorNext = true;
         break;
     case WaitingForChatGPT:
         currentIcon = &chatgptIcon;
         iconColor = ofColor::white;
         bgColor = ofColor(16, 163, 127);
+        loadingIndicatorNext = true;
         break;
     case Error:
         currentIcon = &errorIcon;
@@ -55,6 +117,9 @@ void StatusIcon::setStatus(MidiChatStatus next) {
         break;
     }
 
-    statusChangedTime = ofGetElapsedTimef();
+    if (loadingIndicatorNext && !loadingIndicatorShowing) {
+        loadingIndicatorBeginTime = ofGetElapsedTimef();
+    }
+    loadingIndicatorShowing = loadingIndicatorNext;
     status = next;
 }

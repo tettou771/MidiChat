@@ -20,7 +20,8 @@ public:
     
 private:
     MidiChatStatus status;
-    float statusChangedTime;
+    float loadingIndicatorBeginTime;
+    bool loadingIndicatorShowing = false;
     
     ofImage micIcon, chatgptIcon, errorIcon;
     ofImage* currentIcon;

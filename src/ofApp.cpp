@@ -3,6 +3,7 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
+    ofSetWindowTitle("MIDI Chat");
     ofLogToConsole();
     
 #ifdef TARGET_OS_MAC

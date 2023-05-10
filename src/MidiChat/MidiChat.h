@@ -42,6 +42,7 @@ public:
     MidiChatStatus status = WaitingForUser;
     void setState(MidiChatStatus next);
     shared_ptr<StatusIcon> statusIcon;
+    void onStatusIconClicked();
     
 private:
     static string GPT_Prompt() {

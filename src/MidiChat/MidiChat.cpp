@@ -57,6 +57,7 @@ void MidiChat::onSetup(){
     statusIcon = make_shared<StatusIcon>();
     ofRectangle r(getWidth()/2 - 40, getHeight() - 120, 80, 80);
     statusIcon->setRect(r);
+    ofAddListener(statusIcon->mousePressedOverComponentEvents, this, &MidiChat::onStatusIconClicked);
     addChild(statusIcon);
         
     // フォントをロード
@@ -92,6 +93,10 @@ void MidiChat::onSetup(){
         whisper.setupRecorder(soundDeviceID);
         whisper.setLanguage("ja");
         whisper.setPrompt(R"(音楽のシーケンスを空くるための会話をしています。Cメジャー、Bマイナーなどは Cmaj Bmin などと表記してください。音楽のジャンルや演奏のテクニック、コード理論の話もします。)");
+    }
+    else {
+        // オーディオデバイスが見つからないときは、エラー表示
+        setState(Error);
     }
 }
 
@@ -282,4 +287,17 @@ void MidiChat::setState(MidiChatStatus next) {
     status = next;
     
     statusIcon->setStatus(next);
+}
+
+void MidiChat::onStatusIconClicked() {
+    switch (status) {
+    case WaitingForUser:
+        setState(Recording);
+        break;
+    case Recording:
+        setState(WaitingForWhisper);
+        break;
+    default:
+        break;
+    }
 }
