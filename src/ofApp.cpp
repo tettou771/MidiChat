@@ -4,6 +4,11 @@
 //--------------------------------------------------------------
 void ofApp::setup(){
     ofLogToConsole();
+    
+#ifdef TARGET_OS_MAC
+    ofSetDataPathRoot("../Resources/data");
+#endif
+    
     componentManager = make_shared<ofxComponentManager>();
     
     auto midiChat = make_shared<MidiChat>();

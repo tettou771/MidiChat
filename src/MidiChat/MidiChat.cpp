@@ -52,6 +52,12 @@ void MidiChat::onSetup(){
     // GPTのモデルを情報に入れる
     auto info = make_shared<InfoObject>("GPT model: " + model, ofColor(180));
     chatView->addElement(info);
+    
+    // status icon
+    statusIcon = make_shared<StatusIcon>();
+    ofRectangle r(getWidth()/2 - 40, getHeight() - 120, 80, 80);
+    statusIcon->setRect(r);
+    addChild(statusIcon);
         
     // フォントをロード
     string fontName;
@@ -69,10 +75,24 @@ void MidiChat::onSetup(){
     settings.addRange(ofUnicode::range{0x301, 0x303F}); // 日本語の句読点などの記号
     TextArea::font.load(settings);
     
-    whisper.setup(apiKey);
-    int soundDeviceID = 1;
-    whisper.setupRecorder(soundDeviceID);
-    whisper.setLanguage("ja");
+    // setup whisper (with api)
+    whisper.printSoundDevices();
+    int soundDeviceID = -1;
+    // search default sound device
+    for (auto device : whisper.getSoundDevices()) {
+        if (device.isDefaultInput) {
+            soundDeviceID = device.deviceID;
+            break;
+        }
+    }
+    
+    // if default device is founded, set to whisper
+    if (soundDeviceID != -1) {
+        whisper.setup(apiKey);
+        whisper.setupRecorder(soundDeviceID);
+        whisper.setLanguage("ja");
+        whisper.setPrompt(R"(音楽のシーケンスを空くるための会話をしています。Cメジャー、Bマイナーなどは Cmaj Bmin などと表記してください。音楽のジャンルや演奏のテクニック、コード理論の話もします。)");
+    }
 }
 
 void MidiChat::onUpdate(){
@@ -98,6 +118,8 @@ void MidiChat::onUpdate(){
             if (lastMsg && lastMsg->hasMidi()) {
                 sequencerView->setNextSequence(lastMsg->getSequenceStr());
             }
+            
+            setState(WaitingForUser);
         }
         // 失敗していたらInfoObjectを追加
         else {
@@ -149,28 +171,27 @@ void MidiChat::onUpdate(){
     
     // whisper task
     while (whisper.hasTranscript()) {
-        string newMessage = whisper.getNextTranscript();
-        sendMessage(newMessage);
+        setState(WaitingForChatGPT);
     }
 }
 
 void MidiChat::onDraw(){
-    if (whisper.isRecording()) {
-        ofVec2f p;
-        p.x = getWidth() / 2;
-        p.y = getHeight() - 60;
-        ofSetColor(sin(ofGetElapsedTimef() * 3) * 50 + 205, 0, 0);
-        ofDrawCircle(p, 40);
-    }
+
 }
 
 void MidiChat::onKeyPressed(ofKeyEventArgs &key) {
     if (key.key == ' ') {
-        if (whisper.isRecording()) {
-            whisper.stopRecording();
-        }
-        else if (!chat.isWaiting()) {
+        switch (status) {
+        case WaitingForUser:
             whisper.startRecording();
+            setState(Recording);
+            break;
+
+        case Recording:
+            setState(WaitingForWhisper);
+            break;
+            
+        default: break;
         }
     }
 }
@@ -237,4 +258,28 @@ void MidiChat::writeToLogFile(const string& message) {
     }
     
     logFile << message << endl << endl;
+}
+
+void MidiChat::setState(MidiChatStatus next) {
+    switch (next) {
+    case WaitingForUser:
+        break;
+    case Recording:
+        whisper.startRecording();
+        break;
+    case WaitingForWhisper:
+        whisper.stopRecording();
+        break;
+    case WaitingForChatGPT:
+        {
+            string newMessage = whisper.getNextTranscript();
+            sendMessage(newMessage);
+        }
+        break;
+    default: break;
+    }
+    
+    status = next;
+    
+    statusIcon->setStatus(next);
 }

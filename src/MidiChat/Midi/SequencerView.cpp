@@ -13,8 +13,9 @@ void SequencerView::onStart() {
 	{
         string dummyStr = R"(
 t:4,4,4
-b:90
-C:C7q, D7, Emin7, Fmaj7|Gmaj7, Amin7, Bmin7, Cmaj7|Dmin7, Emin7, Fmaj7, Gmaj7|Amin7, Bmin7, Cmaj7, Dmin7
+b:130
+M:C5i,D5,E5,F5,G5,A5,G5,F5|E5,D5,C5,D5,E5,F5,E5,D5|C5,D5,E5,F5,G5,A5,G5,F5|E5,D5,C5,D5,E5,F5,E5,D5
+P:C1i,C#1i,D1i,D#1i,E1i,F1i,F#1i,G1i|G#1i,A1i,A#1i,B1i,C2i,C#2i,D2i,D#2i
 )";
         
         //setCurrentSequence(dummyStr);

@@ -4,6 +4,7 @@
 #include "ChatThread.h"
 #include "Midi/SequencerView.h"
 #include "ChatView/ChatView.h"
+#include "StatusIcon.h"
 
 using namespace ofxComponent;
 
@@ -37,6 +38,11 @@ public:
     ofxWhisper whisper;
     
     shared_ptr<InfoObject> regenerateButton = nullptr;
+    
+    MidiChatStatus status = WaitingForUser;
+    void setState(MidiChatStatus next);
+    shared_ptr<StatusIcon> statusIcon;
+    
 private:
     static string GPT_Prompt() {
         return R"(あなたは作曲家です。APIと会話しているので、音楽のシーケンスをフォーマットに則って返してください。
@@ -71,10 +77,6 @@ R は休符を表します。オクターブなどは無視されますが、長
 [オクターブ]、[長さ]、[強さ]は、直前のものと同じ場合は省略できます。
 C5qg,E5qg,G5qc,B5qc -> C5qg,E,Gc,B
 
-シーケンスは、音符の長さで次の音符のタイミングが決まります。たとえば、4部音符の次の音は1拍分オフセットされます。
-したがって、1拍ごとに8部音符を置きたい場合は、給付を挟んでください。このようにします。
-D2i,R,D2,R,D2,R,D2,R
-
 シーケンスの例
 
 ```
@@ -92,6 +94,7 @@ P:C2f,D2,R,R|C2,D2,R,R|C2,D2,R,R|C2,D2,R,R
 喋り方はラッパーっぽい感じで、軽い感じで敬語を使わず話してください。アナログバイブスで。
 曲自体の説明（コード進行など）は入れなくてもいいので、シーケンス以外の部分は30文字以内程度に抑えてください。敬語を使ってはいけません。
 そして、コードパートはなるべく入れて、和音を使って演奏してください。
+ユーザーは音声認識で入力しているので、ちょっとおかしい時があるかもしれません。うまく解釈してください。
 )";
     }
 };

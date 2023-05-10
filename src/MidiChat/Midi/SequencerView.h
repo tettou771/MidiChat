@@ -294,6 +294,9 @@ private:
                     
                     // 1拍分シフト
                     //currentTimeMs += 60000. / bpm;
+                    
+                    // 1拍または、音符が長い時はその長さ分シフト
+                    //currentTimeMs += MAX(noteLengthToMilliseconds(length, bpm), 60000. / bpm);
 
                 } // note end
 
