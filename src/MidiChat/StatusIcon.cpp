@@ -5,8 +5,8 @@ void StatusIcon::onStart() {
     micIcon.load("icons/mic.png");
     chatgptIcon.load("icons/ChatGPT.png");
     errorIcon.load("icons/error.png");
-    
-    setStatus(WaitingForUser);
+
+    setStatus(status);
 }
 
 void StatusIcon::onDraw() {
@@ -49,7 +49,7 @@ void StatusIcon::onDraw() {
         for (int i=0; i<dotNum; ++i) {
             float dotTheta = (float)i / dotNum * TAU;
             if (theta2 <= dotTheta && dotTheta <= theta1) {
-                float s = MIN(1, MIN(abs(dotTheta - theta2), abs(dotTheta - theta1)) / TAU * 5);
+                float s = MIN(1, MIN(abs(dotTheta - theta2), abs(dotTheta - theta1)) / TAU * 6);
                 if (s > 0) {
                     float r = s * rMax;
                     ofVec2f p = center;

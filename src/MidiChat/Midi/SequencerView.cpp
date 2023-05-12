@@ -117,6 +117,7 @@ void SequencerView::start() {
     numMeasures = 4;
     beatNumerator = 4;
     beatDenominator = 4;
+    bpm = 0;
 
 	startThread();
 }

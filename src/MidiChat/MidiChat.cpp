@@ -77,6 +77,8 @@ void MidiChat::onSetup(){
     TextArea::font.load(settings);
     
     // setup whisper (with api)
+   // RtAudio audioTemp(toRtAudio(api));
+
     whisper.printSoundDevices();
     int soundDeviceID = -1;
     // search default sound device
@@ -86,13 +88,20 @@ void MidiChat::onSetup(){
             break;
         }
     }
+
+    // if default device is not founded, use first device
+    if (soundDeviceID == -1 && whisper.getSoundDevices().size() > 0) {
+        soundDeviceID = 0;
+    }
     
     // if default device is founded, set to whisper
     if (soundDeviceID != -1) {
         whisper.setup(apiKey);
         whisper.setupRecorder(soundDeviceID);
         whisper.setLanguage("ja");
-        whisper.setPrompt(R"(音楽のシーケンスを空くるための会話をしています。Cメジャー、Bマイナーなどは Cmaj Bmin などと表記してください。音楽のジャンルや演奏のテクニック、コード理論の話もします。)");
+        whisper.setPrompt(R"(音楽のシーケンスを作るための会話をしています。Cメジャー、Bマイナーなどは Cmaj Bmin などと表記してください。音楽のジャンルや演奏のテクニック、コード理論の話もします。)");
+
+        setState(WaitingForUser);
     }
     else {
         // オーディオデバイスが見つからないときは、エラー表示
