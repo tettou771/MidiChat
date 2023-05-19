@@ -77,12 +77,12 @@ void MidiChat::onSetup(){
     TextArea::font.load(settings);
     
     // setup whisper (with api)
-   // RtAudio audioTemp(toRtAudio(api));
 
     whisper.printSoundDevices();
     int soundDeviceID = -1;
     // search default sound device
-    for (auto device : whisper.getSoundDevices()) {
+    auto devices = whisper.getSoundDevices();
+    for (auto device : devices) {
         if (device.isDefaultInput) {
             soundDeviceID = device.deviceID;
             break;
