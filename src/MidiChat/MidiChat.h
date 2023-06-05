@@ -26,6 +26,9 @@ public:
     // 応答がないときに再送するためのメソッド
     // すでにassistantから返信があった場合は、それは削除される
     void regenerate();
+    
+    // 生成を中止
+    void cancel();
 
     ChatThread chat;
     

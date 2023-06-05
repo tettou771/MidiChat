@@ -49,6 +49,14 @@ void MidiChat::onSetup(){
     chat.setup(model, apiKey);
     chat.setSystemMessage(GPT_Prompt());
     
+    // OSCを使うかどうか確認
+    if (configJson.find("osc") != configJson.end() && configJson["osc"].is_object()) {
+        auto oscJson = configJson["osc"];
+        if (oscJson["enabled"]) {
+            sequencerView->setupOsc(oscJson["address"], oscJson["port"]);
+        }
+    }
+    
     // GPTのモデルを情報に入れる
     auto info = make_shared<InfoObject>("GPT model: " + model, ofColor(180));
     chatView->addElement(info);
@@ -207,6 +215,8 @@ void MidiChat::onKeyPressed(ofKeyEventArgs &key) {
             
         default: break;
         }
+    } else if (key.key == OF_KEY_ESC) {
+        cancel();
     }
 }
 
@@ -254,6 +264,13 @@ void MidiChat::regenerate() {
     writeToLogFile("Regenerate");
     
     chat.regenerateAsync();
+}
+
+void MidiChat::cancel(){
+    ofLogNotice("MidiChat") << "Cancel";
+    writeToLogFile("Cancel");
+    //chat.cancel();
+    //setState(WaitingForUser);
 }
 
 void MidiChat::makeLogFile() {

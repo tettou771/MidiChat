@@ -1,6 +1,7 @@
 #include "SequencerView.h"
 
 SequencerView::SequencerView() {
+    sequenceLengthMs = 0;
 }
 
 SequencerView::~SequencerView() {
@@ -99,10 +100,10 @@ void SequencerView::onDraw() {
 void SequencerView::onLocalMatrixChanged() {
 }
 
-void SequencerView::setupOsc(string sendAddr, int sendPort, int receivePort) {
+void SequencerView::setupOsc(string sendAddr, int sendPort) {
 	// setup OSC
 	oscSender.setup(sendAddr, sendPort);
-	oscReceiver.setup(receivePort);
+    oscSender.
 	oscEnabled = true;
 }
 
@@ -295,6 +296,20 @@ void SequencerView::sendMidiTimeClock() {
 }
 
 void SequencerView::midiLoop() {
+    ofxOscBundle oscBundle;
+    
+    auto sendMidi = [&](vector<unsigned char> midiMessage) {
+        midiOut.sendMidiBytes(midiMessage);
+        if (oscEnabled) {
+            ofxOscMessage m;
+            m.setAddress("/midi/note");
+            for (auto &mm : midiMessage) {
+                m.addCharArg(mm);
+            }
+            oscBundle.addMessage(m);
+        }
+    };
+    
 	// noteを読む
 	sequenceTime += diff;
     float sequenceLength = sequenceLengthMs / 1000;
@@ -305,7 +320,7 @@ void SequencerView::midiLoop() {
 			float notetime = note.timeMs / 1000;
 			if (pastSequenceTime < notetime &&
 				notetime <= MIN(sequenceTime, sequenceLength)) {
-				midiOut.sendMidiBytes(note.midiMessage);
+                sendMidi(note.midiMessage);
 			}
 		}
         notesMutex.unlock();
@@ -322,7 +337,7 @@ void SequencerView::midiLoop() {
             for (auto& note : notes) {
 				float notetime = note.timeMs / 1000;
 				if (notetime <= sequenceTime) {
-					midiOut.sendMidiBytes(note.midiMessage);
+                    sendMidi(note.midiMessage);
 				}
 			}
             notesMutex.unlock();
@@ -333,6 +348,10 @@ void SequencerView::midiLoop() {
         // もしあれば、次のシーケンスに移行
         changeToNextSequence();
         pastSequenceTime = sequenceTime = 0;
+    }
+    
+    if (oscBundle.getMessageCount() > 0) {
+        oscSender.sendBundle(oscBundle);
     }
      
     phase = sequenceTime / sequenceLength;
@@ -349,17 +368,7 @@ void SequencerView::changeToNextSequence() {
 }
 
 void SequencerView::oscLoop() {
-	// OSCで何かをコントロールするため（今はまだ使っていない）
-	if (oscReceiver.hasWaitingMessages()) {
-		ofxOscMessage m;
-		oscReceiver.getNextMessage(m);
-		ofLogNotice("SequencerView") << "Got OSC " << m.getAddress();
-
-		if (m.getAddress() == "/gpt/resetLoop") {
-		}
-		else if (m.getAddress() == "/gpt/resetPos") {
-		}
-	}
+	// OSCで何かを受信するため（今はまだ使っていない）
 }
 
 void SequencerView::updateDrawObjectsPosotion() {

@@ -26,7 +26,7 @@ public:
 	void onDraw() override;
 	void onLocalMatrixChanged() override;
 
-	void setupOsc(string sendAddr, int sendPort, int receivePort);
+	void setupOsc(string sendAddr, int sendPort);
 	void start();
 	void threadedFunction() override;
 	float getFps();
@@ -79,7 +79,6 @@ private:
 	bool oscEnabled;
 	bool sentOsc;
 	ofxOscSender oscSender;
-	ofxOscReceiver oscReceiver;
 	void oscLoop();
 
 	// 描画関連

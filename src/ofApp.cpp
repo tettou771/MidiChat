@@ -5,6 +5,7 @@
 void ofApp::setup(){
     ofSetWindowTitle("MIDI Chat");
     ofLogToConsole();
+    ofSetEscapeQuitsApp(false);
     
 #ifdef TARGET_OS_MAC
     ofSetDataPathRoot("../Resources/data");
