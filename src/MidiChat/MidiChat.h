@@ -29,6 +29,10 @@ public:
     
     // 生成を中止
     void cancel();
+    
+    // 再生開始
+    void startMidi(); // シーケンスの頭から
+    void stopMidi();
 
     ChatThread chat;
     

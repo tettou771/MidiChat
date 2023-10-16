@@ -51,9 +51,25 @@ void MidiChat::onSetup(){
     
     // OSCを使うかどうか確認
     if (configJson.find("osc") != configJson.end() && configJson["osc"].is_object()) {
-        auto oscJson = configJson["osc"];
-        if (oscJson["enabled"]) {
-            sequencerView->setupOsc(oscJson["address"], oscJson["port"]);
+        try {
+            auto receiverJson = configJson["osc"]["receiver"];
+            {
+                sequencerView->setupOscReceiver(receiverJson["port"]);
+            }
+            
+            auto remoteJson = configJson["osc"]["remote"];
+            if (remoteJson["enabled"]) {
+                sequencerView->setupOscSender(remoteJson["address"], remoteJson["port"]);
+            }
+            
+            auto broadcastJson = configJson["osc"]["broadcast"];
+            {
+                string addr = broadcastJson["address"];
+                int port = broadcastJson["port"];
+                sequencerView->setupBroadcast(addr, port);
+            }
+        } catch(exception e) {
+            ofLogError("MidiChat") << "osc JSON parse error";
         }
     }
     
@@ -202,21 +218,30 @@ void MidiChat::onDraw(){
 }
 
 void MidiChat::onKeyPressed(ofKeyEventArgs &key) {
-    if (key.key == ' ') {
+    switch (key.key) {
+    case ' ':
         switch (status) {
         case WaitingForUser:
             whisper.startRecording();
             setState(Recording);
             break;
-
+            
         case Recording:
             setState(WaitingForWhisper);
             break;
             
         default: break;
         }
-    } else if (key.key == OF_KEY_ESC) {
-        cancel();
+        break;
+    case OF_KEY_RETURN:
+        sequencerView->toggleMidi();
+        break;
+    case 'b':
+        sequencerView->toggleGlobalEnabled();
+        if (sequencerView->getGlobalBpmEnabled()) {
+            sequencerView->sendGlobalBpm();
+        }
+        break;
     }
 }
 
@@ -269,8 +294,20 @@ void MidiChat::regenerate() {
 void MidiChat::cancel(){
     ofLogNotice("MidiChat") << "Cancel";
     writeToLogFile("Cancel");
-    //chat.cancel();
-    //setState(WaitingForUser);
+}
+
+void MidiChat::startMidi(){
+    ofLogNotice("MidiChat") << "Start";
+    writeToLogFile("Start");
+    
+    sequencerView->startMidi();
+}
+
+void MidiChat::stopMidi(){
+    ofLogNotice("MidiChat") << "Stop";
+    writeToLogFile("Stop");
+    
+    sequencerView->stopMidi();
 }
 
 void MidiChat::makeLogFile() {
@@ -292,6 +329,9 @@ void MidiChat::writeToLogFile(const string& message) {
 }
 
 void MidiChat::setState(MidiChatStatus next) {
+    statusIcon->setStatus(next);
+    status = next;
+
     switch (next) {
     case WaitingForUser:
         break;
@@ -304,15 +344,25 @@ void MidiChat::setState(MidiChatStatus next) {
     case WaitingForChatGPT:
         {
             string newMessage = whisper.getNextTranscript();
-            sendMessage(newMessage);
+            bool ignore = false;
+            string ignoreMessages[] = {
+                "ご視聴ありがとうございました。",
+                "音楽のジャンルや演奏のテクニック、コード理論の話もします。"
+            };
+            for (auto & m: ignoreMessages) {
+                if (newMessage == m) {
+                    ignore = true;
+                }
+            }
+            if (ignore) {
+                setState(WaitingForUser);
+            }else{
+                sendMessage(newMessage);
+            }
         }
         break;
     default: break;
     }
-    
-    status = next;
-    
-    statusIcon->setStatus(next);
 }
 
 void MidiChat::onStatusIconClicked() {

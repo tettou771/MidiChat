@@ -28,6 +28,9 @@ public:
 
     // Resend the request asynchronously
     void regenerateAsync();
+    
+    // Cancel generating
+    void cancel();
 
     // If a message is available, it can be retrieved
     // Retrieved messages are removed from the list

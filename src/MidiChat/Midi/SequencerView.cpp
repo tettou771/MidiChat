@@ -2,6 +2,7 @@
 
 SequencerView::SequencerView() {
     sequenceLengthMs = 0;
+    bpm = globalBpm = 0;
 }
 
 SequencerView::~SequencerView() {
@@ -26,7 +27,7 @@ P:C1i,C#1i,D1i,D#1i,E1i,F1i,F#1i,G1i|G#1i,A1i,A#1i,B1i,C2i,C#2i,D2i,D#2i
     
     setHeight(1280);
     
-	start();
+	startLoop();
 }
 
 void SequencerView::onUpdate() {
@@ -76,7 +77,11 @@ void SequencerView::onDraw() {
     // info
     ofSetColor(200);
     stringstream ss;
-    ss << "BPM " << ofToString(bpm, 0) << endl;
+    if (globalBpmEnabled) {
+        ss << "Global BPM " << ofToString(globalBpm, 0) << " Original " << ofToString(bpm, 0) << endl;
+    } else {
+        ss << "BPM " << ofToString(bpm, 0) << endl;
+    }
     ss << "Beat " << beatNumerator << "/" << beatDenominator << " " << numMeasures << "beats" << endl;
     
     notesMutex.lock();
@@ -86,6 +91,9 @@ void SequencerView::onDraw() {
     onpuMutex.lock();
     ss << "Onpu " << onpus.size() << endl;
     onpuMutex.unlock();
+    
+    ss << (isPlaying ? "Play" : "Stop") << endl;
+
 
     ofDrawBitmapString(ss.str(), 4, 20);
     
@@ -100,14 +108,22 @@ void SequencerView::onDraw() {
 void SequencerView::onLocalMatrixChanged() {
 }
 
-void SequencerView::setupOsc(string sendAddr, int sendPort) {
+void SequencerView::setupOscReceiver(int port) {
+    oscReceiver.setup(port);
+}
+
+void SequencerView::setupOscSender(const string& addr, const int& port) {
 	// setup OSC
-	oscSender.setup(sendAddr, sendPort);
-    oscSender.
+	oscSender.setup(addr, port);
 	oscEnabled = true;
 }
 
-void SequencerView::start() {
+void SequencerView::setupBroadcast(const string& addr, const int& port) {
+    // setup OSC
+    oscBroadcastSender.setup(addr, port);
+}
+
+void SequencerView::startLoop() {
 	fps = 0;
 	futureSec = 0.1;
 	pastUpdatedTime = ofGetElapsedTimef();
@@ -118,7 +134,6 @@ void SequencerView::start() {
     numMeasures = 4;
     beatNumerator = 4;
     beatDenominator = 4;
-    bpm = 0;
 
 	startThread();
 }
@@ -134,7 +149,7 @@ void SequencerView::threadedFunction() {
 		midiLoop();
 
 		// OSC task
-		if (oscEnabled) oscLoop();
+		oscLoop();
 
 		// fpsを表示するため
 		float diff = now - pastUpdatedTime;
@@ -152,11 +167,48 @@ float SequencerView::getFps() {
 	return fps;
 }
 
+void SequencerView::startMidi() {
+    isPlaying = true;
+    sequenceTime = 0;
+}
+
+void SequencerView::stopMidi() {
+    isPlaying = false;
+    sequenceTime = pastSequenceTime = 0;
+    phase = 0;
+    
+    // 今再生中のノートをオフにする
+    onpuMutex.lock();
+    for (auto onpu : onpus) {
+        if (!onpu->isPlaying) continue;
+        sendNote(onpu->end->midiMessage);
+        onpu->isPlaying = false;
+    }
+    onpuMutex.unlock();
+}
+
+void SequencerView::toggleMidi() {
+    if (isPlaying) stopMidi();
+    else startMidi();
+}
+
+void SequencerView::sendGlobalBpm() {
+    globalBpm = bpm;
+    ofxOscMessage m;
+    m.setAddress("/bpm");
+    m.addFloatArg(globalBpm);
+    oscBroadcastSender.sendMessage(m);
+}
+
 void SequencerView::setNextSequence(string& sequenceStr) {
     sequenceMutex.lock();
     nextSequenceStr = sequenceStr;
     hasNextMidiJson = true;
     sequenceMutex.unlock();
+    
+    if (!isPlaying) {
+        changeToNextSequence();
+    }
 }
 
 void SequencerView::setCurrentSequence(string& sequenceStr) {
@@ -296,22 +348,14 @@ void SequencerView::sendMidiTimeClock() {
 }
 
 void SequencerView::midiLoop() {
-    ofxOscBundle oscBundle;
-    
-    auto sendMidi = [&](vector<unsigned char> midiMessage) {
-        midiOut.sendMidiBytes(midiMessage);
-        if (oscEnabled) {
-            ofxOscMessage m;
-            m.setAddress("/midi/note");
-            for (auto &mm : midiMessage) {
-                m.addCharArg(mm);
-            }
-            oscBundle.addMessage(m);
-        }
-    };
+    if (!isPlaying) return;
     
 	// noteを読む
-	sequenceTime += diff;
+    if (globalBpmEnabled) {
+        sequenceTime += diff * globalBpm / bpm;
+    }else {
+        sequenceTime += diff;
+    }
     float sequenceLength = sequenceLengthMs / 1000;
 
 	if (sequenceLengthMs > 0) {
@@ -320,7 +364,7 @@ void SequencerView::midiLoop() {
 			float notetime = note.timeMs / 1000;
 			if (pastSequenceTime < notetime &&
 				notetime <= MIN(sequenceTime, sequenceLength)) {
-                sendMidi(note.midiMessage);
+                sendNote(note.midiMessage);
 			}
 		}
         notesMutex.unlock();
@@ -337,7 +381,7 @@ void SequencerView::midiLoop() {
             for (auto& note : notes) {
 				float notetime = note.timeMs / 1000;
 				if (notetime <= sequenceTime) {
-                    sendMidi(note.midiMessage);
+                    sendNote(note.midiMessage);
 				}
 			}
             notesMutex.unlock();
@@ -349,13 +393,22 @@ void SequencerView::midiLoop() {
         changeToNextSequence();
         pastSequenceTime = sequenceTime = 0;
     }
-    
-    if (oscBundle.getMessageCount() > 0) {
-        oscSender.sendBundle(oscBundle);
-    }
-     
+         
     phase = sequenceTime / sequenceLength;
-	pastSequenceTime = sequenceTime;
+	
+    pastSequenceTime = sequenceTime;
+}
+
+void SequencerView::setGlobalBpm(float _bpm) {
+    globalBpm = _bpm;
+}
+
+void SequencerView::setGlobalBpmEnabled(bool enabled) {
+    globalBpmEnabled = enabled;
+}
+
+void SequencerView::toggleGlobalEnabled() {
+    setGlobalBpmEnabled(!globalBpmEnabled);
 }
 
 void SequencerView::changeToNextSequence() {
@@ -367,8 +420,30 @@ void SequencerView::changeToNextSequence() {
     sequenceMutex.unlock();
 }
 
+void SequencerView::sendNote(vector<unsigned char> midiMessage) {
+    midiOut.sendMidiBytes(midiMessage);
+    if (oscEnabled) {
+        ofxOscMessage m;
+        m.setAddress("/midi/note");
+        for (auto &mm : midiMessage) {
+            m.addCharArg(mm);
+        }
+        oscSenderMutex.lock();
+        oscSender.sendMessage(m);
+        oscSenderMutex.unlock();
+    }
+}
+
 void SequencerView::oscLoop() {
-	// OSCで何かを受信するため（今はまだ使っていない）
+	// OSCで何かを受信する
+    while (oscReceiver.hasWaitingMessages()) {
+        ofxOscMessage m;
+        oscReceiver.getNextMessage(m);
+        if (m.getAddress() == "/bpm") {
+            setGlobalBpm(m.getArgAsInt(0));
+            setGlobalBpmEnabled(true);
+        }
+    }
 }
 
 void SequencerView::updateDrawObjectsPosotion() {

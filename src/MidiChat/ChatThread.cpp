@@ -68,6 +68,11 @@ void ChatThread::regenerateAsync() {
     startThread();
 }
 
+void ChatThread::cancel() {
+    if (!isThreadRunning()) return;
+    
+}
+
 tuple<string, ofxChatGPT::ErrorCode> ChatThread::getMessage() {
     tuple<string, ofxChatGPT::ErrorCode> result;
     mutex.lock();

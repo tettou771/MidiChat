@@ -26,10 +26,23 @@ public:
 	void onDraw() override;
 	void onLocalMatrixChanged() override;
 
-	void setupOsc(string sendAddr, int sendPort);
-	void start();
+    void setupOscReceiver(int port);
+	void setupOscSender(const string& addr, const int& port);
+    void setupBroadcast(const string& addr, const int& port);
+	void startLoop();
 	void threadedFunction() override;
 	float getFps();
+    
+    void startMidi(); // 送信を再開（シーケンスの最初から）
+    void stopMidi(); // 送信を停止
+    void toggleMidi(); // start, stop をトグル
+    void sendGlobalBpm();
+    
+    // bpm設定
+    void setGlobalBpm(float bpm);
+    void setGlobalBpmEnabled(bool enabled);
+    void toggleGlobalEnabled();
+    bool getGlobalBpmEnabled() {return globalBpmEnabled; }
 
 	float futureSec; // どのくらい未来を先取りしてOSC送信するか sec
 	float phase;
@@ -53,6 +66,7 @@ private:
 	ofxMidiOut midiOut;
 
 	bool midiStopFlag = false;
+    bool isPlaying = true;
 
 	void openMidi();
 	void closeMidi();
@@ -60,6 +74,10 @@ private:
 	void sendMidiStop();
 	void sendMidiTimeClock();
 	void midiLoop();
+
+    // 合わせる時のBPM
+    float globalBpm;
+    bool globalBpmEnabled = false;
 
 	// MIDIのシーケンスファイル
 	string currentSequenceStr, nextSequenceStr;
@@ -74,12 +92,20 @@ private:
 	void changeToNextSequence();
 	ofMutex sequenceMutex;
 
-private:
+    // OSCとMIDI両方で送信
+    void sendNote(vector<unsigned char> midiMessage);
+    
 	// OSC関連
-	bool oscEnabled;
+	bool oscEnabled = false;
 	bool sentOsc;
-	ofxOscSender oscSender;
+	ofxOscSender oscSender, oscBroadcastSender;
+    ofMutex oscSenderMutex;
 	void oscLoop();
+    
+    ofxOscReceiver oscReceiver;
+    
+    string broadcastAddress;
+    int broadcastPort;
 
 	// 描画関連
 	shared_ptr<SeekBar> seekBar;
@@ -156,7 +182,7 @@ private:
         }
 	}
 
-	int noteLengthToMilliseconds(char noteLength, int bpm) {
+	int noteLengthToMilliseconds(char noteLength, float bpm) {
 		std::map<char, double> noteLengthValues = { {'w', 1.0}, {'h', 0.5}, {'q', 0.25}, {'i', 0.125}, {'s', 0.0625} };
 		return static_cast<int>(noteLengthValues[noteLength] * beatDenominator * 60000.0 / bpm);
 	}
@@ -306,6 +332,5 @@ private:
 		// 小節の数がシーケンス全体の長さになる
 		sequenceLengthMs = 60000. * numMeasures * beatNumerator / bpm;
 	}
-
 };
 

@@ -63,5 +63,3 @@ void ChatView::deleteLastAssistantMessage() {
         messages.erase(messages.end() - 1);
     }
 }
-
-
