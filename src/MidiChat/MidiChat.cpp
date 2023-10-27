@@ -10,20 +10,22 @@ void MidiChat::onSetup(){
     //ofSetLogLevel(OF_LOG_VERBOSE);
     ofSetLogLevel(OF_LOG_NOTICE);
     
+    // show fit view
+    sequencerView = make_shared<SequencerView>();
+    auto scrollView2 = make_shared<FitView>();
+    scrollView2->setRect(ofRectangle(0, 0, getWidth(), getHeight()));
+    scrollView2->setContents(sequencerView);
+    addChild(scrollView2);
+
     // show in scroll view
     chatView = make_shared<ChatView>();
     chatView->setAlign(ListBox::Align::FitWidth); // 要素を幅で合わせる
     auto scrollView = make_shared<ScrollView>(ScrollView::FitWidth);
-    scrollView->setRect(ofRectangle(60, 60, 900, 800));
+    int margin = 30;
+    scrollView->setRect(ofRectangle(margin, margin, getWidth() - margin*2, getHeight() - margin - 110));
     scrollView->setContents(chatView);
     addChild(scrollView);
     
-    sequencerView = make_shared<SequencerView>();
-    auto scrollView2 = make_shared<ScrollView>(ScrollView::FitWidth);
-    scrollView2->setRect(ofRectangle(1000, 60, 860, 800));
-    scrollView2->setContents(sequencerView);
-    addChild(scrollView2);
-
     // chatGPTのapiKey
     ofJson configJson = ofLoadJson("config.json");
     string apiKey = configJson["apiKey"].get<string>();
@@ -201,7 +203,8 @@ void MidiChat::onUpdate(){
             writeToLogFile("GPT:");
             writeToLogFile(gptResponse);
 
-            chatView->addMessage(newGPTMsg);
+            ofColor gptTxtColor(20, 190, 150);
+            chatView->addMessage(newGPTMsg, gptTxtColor);
             
             // If the message has sequence, apply to SequencerView
             auto lastMsg = chatView->getLastMessageObject();
@@ -333,7 +336,7 @@ void MidiChat::sendMessage(string& message) {
     ofJson newUserMsg;
     newUserMsg["message"]["role"] = "user";
     newUserMsg["message"]["content"] = message;
-    chatView->addMessage(newUserMsg);
+    chatView->addMessage(newUserMsg, ofColor::gray);
     
     // もし自分がMIDIを書いていたら、それを反映させる
     auto lastMsg = chatView->getLastMessageObject();
@@ -411,6 +414,7 @@ void MidiChat::setState(MidiChatStatus next) {
         break;
     case Recording:
         whisper.startRealtimeRecording();
+        transcriptingObject = nullptr;
         break;
     case RecordingToChatGPT:
         transcriptingObject = nullptr;
@@ -434,12 +438,15 @@ void MidiChat::newTranscriptObject(const string& transcript) {
     // まだオブジェクトがない場合（最初の発話と、一度MidiChatに送った後の発話）
     // 新しくオブジェクトを作る。
     ofJson j; // MessageObjectを作るためのテンプレート
+    ofColor txtColor = ofColor::white; // 文字の色
     j["message"]["role"] = "user";
+    // ChatGPTに送る部分だけは、文字色を黄色にする
     if (status == RecordingToChatGPT) {
         j["message"]["role"] = "user to assistant";
+        txtColor = ofColor(255, 220, 0);
     }
     j["message"]["content"] = transcript;
-    transcriptingObject = make_shared<MessageObject>(j);
+    transcriptingObject = make_shared<MessageObject>(j, txtColor);
     chatView->addMessageObject(transcriptingObject);
 }
 
@@ -502,7 +509,7 @@ void MidiChat::nextState() {
         break;
         
     case RecordingToChatGPT:
-        // transcriptionObjectがあるときだけ次に進む
+        // transcriptingObjectがあるときだけ次に進む
         if (!isTranscriptingObjectEmpty()) {
             setState(WaitingForChatGPT);
         }

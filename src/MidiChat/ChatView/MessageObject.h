@@ -6,7 +6,7 @@ using namespace ofxComponent;
 
 class MessageObject : public ListElement {
 public:
-    MessageObject(ofJson json);
+    MessageObject(ofJson json, ofColor _txtColor = ofColor::white);
     
     void onStart() override;
     void onUpdate() override;
@@ -25,6 +25,9 @@ private:
     bool itHasMidi = false;
     string role;
     bool valid = false;
+    
+    // コンストラクタで決定して、onStart() の中で使うための変数
+    ofColor txtColor;
     
     static bool extractSequence(const std::string& content, std::string& sequenceStr);
 };

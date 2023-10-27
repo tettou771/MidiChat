@@ -8,23 +8,38 @@ void ChatView::onSetup() {
 }
 
 void ChatView::onUpdate() {
-    
+    // 自動スクロールする
+    if (autoScroll) {
+        auto view = getParent()->getThisAs<ScrollView>();
+        if (view) {
+            view->scrollY(-3);
+        }
+    }
 }
 
 void ChatView::onDraw() {
-    //ofSetColor(40, 120);
-    //ofDrawRectangle(0, 0, getWidth(), getHeight());
+    ofSetColor(0, 0, 40, 100);
+    ofDrawRectangle(0, 0, getWidth(), getHeight());
     
 }
 
-void ChatView::addMessage(ofJson message) {
-    auto newMsgObj = make_shared<MessageObject>(message);
+void ChatView::onMouseScrolled(ofMouseEventArgs& mouse) {
+    // 上にスクロールした時はautoScrollを無効化
+    if (mouse.scrollY > 0) autoScroll = false;
+    // 下にスクロールしていて、かつ下端にいる場合はautoScrollを有効化
+    else if (getPos().y == getParent()->getHeight() - getHeight()) {
+        autoScroll = true;
+    }
+}
+
+void ChatView::addMessage(ofJson message, ofColor txtColor) {
+    auto newMsgObj = make_shared<MessageObject>(message, txtColor);
     
     if (newMsgObj->isValid()) {
         messages.push_back(newMsgObj);
         // 仮にサイズを決めておく
         newMsgObj->setWidth(getWidth());
-        newMsgObj->setHeight(100);
+        newMsgObj->setHeight(80);
         addElement(newMsgObj);
         //updateMessagesPosition();
     }
@@ -34,13 +49,6 @@ void ChatView::addMessage(ofJson message) {
         
     // オブジェクトの位置を調整
     updateMessagesPosition();
-    
-    // TODO
-    // メッセージを追加するたびに下にスクロールする
-    auto view = getParent()->getThisAs<ScrollView>();
-    if (view) {
-        view->scrollY(-100);
-    }
 }
 
 void ChatView::addMessageObject(shared_ptr<MessageObject> mObj) {
@@ -49,6 +57,8 @@ void ChatView::addMessageObject(shared_ptr<MessageObject> mObj) {
 }
 
 void ChatView::updateMessagesPosition() {
+    updateList();
+    return;
     int y = 0;
     for (auto &m : messages) {
         m->setPos(0, y);
@@ -67,4 +77,10 @@ void ChatView::deleteLastAssistantMessage() {
         messages.back()->destroy();
         messages.erase(messages.end() - 1);
     }
+}
+
+void ChatView::scrollToLast() {
+    ofVec2f p = getPos();
+    p.y = getHeight() - getParent()->getHeight();
+    setPos(p);
 }

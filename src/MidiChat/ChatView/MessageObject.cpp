@@ -1,9 +1,10 @@
 #include "MessageObject.h"
 
-MessageObject::MessageObject(ofJson json) {
+MessageObject::MessageObject(ofJson json, ofColor _txtColor) {
 	raw = json;
 	valid = false;
     itHasMidi = false;
+    txtColor = _txtColor;
 
 	if (raw.count("message") > 0 && raw["message"].is_object() &&
 		raw["message"].count("role") > 0 && raw["message"]["role"].is_string() &&
@@ -31,7 +32,7 @@ void MessageObject::onStart() {
 
 	// jsonをもとに、テキストオブジェクトを作る
 	textArea = make_shared<TextArea>();
-    textArea->color = ofColor(255);
+    textArea->color = txtColor;
 	float margin = 15;
 	textArea->setRect(ofRectangle(100, 70, getWidth() - 100 - margin, 0));
 

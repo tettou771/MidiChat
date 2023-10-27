@@ -12,6 +12,7 @@ class SeekBar : public ofxComponentBase {
 public:
 	void onDraw() override {
 		ofSetColor(200, 0, 0);
+        ofSetLineWidth(2);
 		ofDrawLine(0, 0, 0, getHeight());
 	}
 };
@@ -120,7 +121,7 @@ private:
     // パーサ
     vector<int> shortenChordNotation(string& noteStr) {
         
-        tuple<string, vector<int>> chordOffsets[] = {
+        const tuple<string, vector<int>> chordOffsets[] = {
             {"maj7", {0, 4, 7, 11}},
             {"maj", {0, 4, 7}},
             {"m7", {0, 4, 7, 11}},
