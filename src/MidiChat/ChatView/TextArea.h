@@ -10,8 +10,11 @@ public:
     void onStart() override;
     void onUpdate() override;
     void onDraw() override;
-    void setString(string &str);
-    void setStringDelay(string &str);
+    void setString(const string &str);
+    void setStringDelay(const string &str);
+    void addString(const string &str);
+    void addStringDelay(const string &str);
+    void clear();
     
     static ofTrueTypeFont font;
     string message; // 適宜改行したmessage
@@ -21,6 +24,7 @@ public:
     // 遅れてテキストがずらずら出るエフェクト
     bool delayText = false;
     int delayTextIndex;
+    int offsetTextIndex = 0; // 追加で文字を出す場合に、最初から出ている文字のインデックス
     // 1秒あたりに表示する文字数
     // 文字数が多い時は早く設定する
     float cps; // char / sec

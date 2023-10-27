@@ -43,6 +43,11 @@ void ChatView::addMessage(ofJson message) {
     }
 }
 
+void ChatView::addMessageObject(shared_ptr<MessageObject> mObj) {
+    if (!mObj) return;
+    addElement(mObj);
+}
+
 void ChatView::updateMessagesPosition() {
     int y = 0;
     for (auto &m : messages) {

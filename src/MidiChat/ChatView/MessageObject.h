@@ -14,8 +14,10 @@ public:
     bool isValid() {return valid;}
     bool hasMidi() {return itHasMidi;}
     string& getSequenceStr() { return sequenceStr; }
-    string getRole() {return role;}    
+    string getRole() { return role; }
+    void setRole(string _role) { role = _role; }
     string message;
+    shared_ptr<TextArea> getTextArea() { return textArea; }
 private:
     shared_ptr<TextArea> textArea;
     ofJson raw;
@@ -38,6 +40,6 @@ public:
 
 private:
     string infoMsg;
-    shared_ptr<TextArea> textArea;
+    shared_ptr<TextArea> textArea = nullptr;
     ofColor bgColor, txtColor;
 };

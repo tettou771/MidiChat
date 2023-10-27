@@ -35,13 +35,8 @@ void MessageObject::onStart() {
 	float margin = 15;
 	textArea->setRect(ofRectangle(100, 70, getWidth() - 100 - margin, 0));
 
-	// もしassistantのメッセージなら、ツラツラと出てくるように描画する
-	if (raw["message"]["role"] == "assistant") {
-		textArea->setStringDelay(message);
-	}
-	else {
-		textArea->setString(message);
-	}
+    // つらつら出てくるように表示する
+    textArea->setStringDelay(message);
 
 	float h = textArea->getPos().y + textArea->getHeight() + margin;
 	h = MAX(h, 50); // 最低50pixの大きさを持つ

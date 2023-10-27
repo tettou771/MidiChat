@@ -13,6 +13,7 @@ public:
     void onDraw() override;
     
     void addMessage(ofJson message);
+    void addMessageObject(shared_ptr<MessageObject> mObj);
     void updateMessagesPosition();
     shared_ptr<MessageObject> getLastMessageObject();
     void deleteLastAssistantMessage();

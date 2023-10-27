@@ -20,10 +20,10 @@ void TextArea::onUpdate() {
 
 	// 1秒あたりに表示する文字数
     // 5秒以内で表示できるように文字数に比例するが、最低でも 20 にしておく
-    cps = MAX(20, (int)u32message.length() / 5);
+    cps = MAX(20, ((int)u32message.length() - offsetTextIndex) / 5);
 
 	// 今あるべき文字数
-	int expectedNum = MIN((int)u32message.length(), cps * elapsedTime);
+	int expectedNum = MIN((int)u32message.length(), cps * elapsedTime + offsetTextIndex);
 
 	for (int i = delayTextIndex; i < expectedNum; ++i) {
 		string s = UTF32toUTF8(u32message[i]);
@@ -53,28 +53,47 @@ void TextArea::onDraw() {
 	font.drawString(message, 0, font.getSize());
 }
 
-void TextArea::setString(string& str) {
-	u32message = UTF8toUTF32(str);
-	message = "";
-	for (int i = 0; i < u32message.size(); ++i) {
-		string s = UTF32toUTF8(u32message[i]);
-		float w = font.stringWidth(message + s);
-		if (w > getWidth()) {
-			message += '\n' + s;
-		}
-		else {
-			message += s;
-		}
-	}
-
-	// 文字列の大きさに合わせてサイズを変更
-	auto bbox = font.getStringBoundingBox(message, 0, font.getSize());
-	setHeight(bbox.y + bbox.getHeight());
+void TextArea::setString(const string& str) {
+    clear();
+    addString(str);
 }
 
-void TextArea::setStringDelay(string& str) {
-	u32message = UTF8toUTF32(str);
-	startTime = ofGetElapsedTimef();
-	delayText = true;
-	delayTextIndex = 0;
+void TextArea::setStringDelay(const string& str) {
+    clear();
+    addStringDelay(str);
+}
+
+void TextArea::addString(const string& str) {
+    u32message = u32message + UTF8toUTF32(str);
+    for (int i = 0; i < u32message.size(); ++i) {
+        string s = UTF32toUTF8(u32message[i]);
+        float w = font.stringWidth(message + s);
+        if (w > getWidth()) {
+            message += '\n' + s;
+        }
+        else {
+            message += s;
+        }
+    }
+
+    // 文字列の大きさに合わせてサイズを変更
+    auto bbox = font.getStringBoundingBox(message, 0, font.getSize());
+    setHeight(bbox.y + bbox.getHeight());
+}
+
+void TextArea::addStringDelay(const string& str) {
+    // すでに全部表示されているなら、delayTextIndexを最後の文字まで進めておく
+    if (!delayText) delayTextIndex = u32message.length();
+        
+    u32message += UTF8toUTF32(str);
+    startTime = ofGetElapsedTimef();
+    offsetTextIndex = delayTextIndex;
+    delayText = true;
+}
+
+void TextArea::clear() {
+    message = "";
+    u32message = U"";
+    delayTextIndex = 0;
+    offsetTextIndex = 0;
 }

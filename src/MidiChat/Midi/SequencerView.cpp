@@ -99,7 +99,8 @@ void SequencerView::onDraw() {
     
     // 次のシーケンスがあった羅、枠を点滅
     if (hasNextMidiJson && fmod(ofGetElapsedTimef(), 0.8) < 0.4) {
-        ofSetColor(200);
+        if (nextSequenceReadyFlag) ofSetColor(0, 255, 0);
+        else ofSetColor(200);
         ofNoFill();
         ofDrawRectangle(0, 0, getWidth(), getHeight());
     }
@@ -205,6 +206,7 @@ void SequencerView::setNextSequence(string& sequenceStr) {
     nextSequenceStr = sequenceStr;
     hasNextMidiJson = true;
     sequenceMutex.unlock();
+    nextSequenceReadyFlag = false;
     
     if (!isPlaying) {
         changeToNextSequence();
@@ -374,8 +376,11 @@ void SequencerView::midiLoop() {
 		if (sequenceLength < sequenceTime) {
             sequenceTime -= sequenceLength;
 
-            // もしあれば、次のシーケンスに移行
-            changeToNextSequence();
+            // もしあれば、なおかつフラグが立っていれば、
+            // 次のシーケンスに移行
+            if (nextSequenceReadyFlag) {
+                changeToNextSequence();
+            }
 
             notesMutex.lock();
             for (auto& note : notes) {

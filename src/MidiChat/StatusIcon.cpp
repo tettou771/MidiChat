@@ -5,6 +5,7 @@ void StatusIcon::onStart() {
     micIcon.load("icons/mic.png");
     chatgptIcon.load("icons/ChatGPT.png");
     errorIcon.load("icons/error.png");
+    level = 0;
 
     setStatus(status);
 }
@@ -18,6 +19,17 @@ void StatusIcon::onDraw() {
     // draw outline (antialiasing)
     ofNoFill();
     ofDrawCircle(getWidth()/2, getHeight()/2, getWidth()/2);
+
+    // audio level
+    if (isRecording) {
+        ofSetColor(ofColor::fromHsb(0 * 255, 0.8 * 255, level * 10 * 255));
+    } else{
+        ofSetColor(ofColor::fromHsb(0.25 * 255, 0.8 * 255, level * 10 * 255));
+    }
+    ofNoFill();
+    ofSetLineWidth(4);
+    ofDrawCircle(getWidth()/2, getHeight()/2, getWidth()/2 + 2);
+    ofSetLineWidth(1);
 
     // draw icon image
     if (currentIcon && currentIcon->isAllocated()) {
@@ -88,7 +100,7 @@ void StatusIcon::setStatus(MidiChatStatus next) {
     bool loadingIndicatorNext = false;
     
     switch (next) {
-    case WaitingForUser:
+    case Stop:
         currentIcon = &micIcon;
         iconColor = ofColor::white;
         bgColor = ofColor(100);
@@ -98,11 +110,10 @@ void StatusIcon::setStatus(MidiChatStatus next) {
         iconColor = ofColor::white;
         bgColor = ofColor(255, 0, 0);
         break;
-    case WaitingForWhisper:
-        currentIcon = &chatgptIcon;
+    case RecordingToChatGPT:
+        currentIcon = &micIcon;
         iconColor = ofColor::white;
-        bgColor = ofColor(10, 80, 180);
-        loadingIndicatorNext = true;
+        bgColor = ofColor(16, 163, 127);
         break;
     case WaitingForChatGPT:
         currentIcon = &chatgptIcon;
@@ -122,4 +133,13 @@ void StatusIcon::setStatus(MidiChatStatus next) {
     }
     loadingIndicatorShowing = loadingIndicatorNext;
     status = next;
+}
+
+void StatusIcon::setWhisper(ofxWhisper *w) {
+    ofAddListener(w->audioEvents, this, &StatusIcon::whisperAudioEvent);
+}
+
+void StatusIcon::whisperAudioEvent(ofxWhisper::AudioEventArgs &args) {
+    level = args.audioLevel;
+    isRecording = args.isRecording;
 }

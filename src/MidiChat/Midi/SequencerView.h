@@ -50,6 +50,9 @@ public:
 	// MIDIデータをofJsonで加えるときのメソッド
 	void setNextSequence(string& sequenceStr);
 	void setCurrentSequence(string& sequenceStr);
+    
+    // 次のMIDIに移行していいというフラグを立てるためのメソッド
+    void nextSequenceReady() {nextSequenceReadyFlag = true;}
 
 	int getSequenceCount() { return sequenceCount; }
 	bool getSentThisFrame() { bool b = sentOsc; sentOsc = false; return b; }
@@ -66,7 +69,8 @@ private:
 	ofxMidiOut midiOut;
 
 	bool midiStopFlag = false;
-    bool isPlaying = true;
+    bool isPlaying = false;
+    bool nextSequenceReadyFlag = false;
 
 	void openMidi();
 	void closeMidi();

@@ -38,16 +38,31 @@ void MidiChat::onSetup(){
     string model = "gpt-3.5-turbo"; // default model
     for (auto m : models) {
         // GPT系のモデルだけをリストアップ
+        /*
+        if (ofIsStringInString(m, "gpt")) {
+            ofLogNotice("MidiChat") << m;
+            if (m == "gpt-3.5-turbo-16k") model = "gpt-3.5-turbo-16k";
+        }
+*/
         // もしgpt-4があればそれを使う
         if (ofIsStringInString(m, "gpt")) {
             ofLogNotice("MidiChat") << m;
             if (m == "gpt-4") model = "gpt-4";
         }
     }
+    
+    // GPTのsystemメッセージを読む
+    {
+        ofFile file("system_prompt.txt");
+        if(file.exists()){
+            ofBuffer buffer = file.readToBuffer();
+            gptSystemPrompt = buffer.getText();
+        }
+    }
 
     // セットする
     chat.setup(model, apiKey);
-    chat.setSystemMessage(GPT_Prompt());
+    chat.setSystemMessage(gptSystemPrompt);
     
     // OSCを使うかどうか確認
     if (configJson.find("osc") != configJson.end() && configJson["osc"].is_object()) {
@@ -78,12 +93,23 @@ void MidiChat::onSetup(){
     chatView->addElement(info);
     
     // status icon
-    statusIcon = make_shared<StatusIcon>();
-    ofRectangle r(getWidth()/2 - 40, getHeight() - 120, 80, 80);
-    statusIcon->setRect(r);
-    ofAddListener(statusIcon->mousePressedOverComponentEvents, this, &MidiChat::onStatusIconClicked);
-    addChild(statusIcon);
-        
+    {
+        statusIcon = make_shared<StatusIcon>();
+        ofRectangle r(getWidth()/2 - 40, getHeight() - 120, 80, 80);
+        statusIcon->setRect(r);
+        statusIcon->setWhisper(&whisper);
+        ofAddListener(statusIcon->mousePressedOverComponentEvents, this, &MidiChat::onStatusIconClicked);
+        addChild(statusIcon);
+    }
+    
+    // audio level monitor
+    {
+        audioLevelMonitor = make_shared<AudioLevelMonitor>(&whisper);
+        ofRectangle r(getWidth()/2 + 80, getHeight() - 100, 400, 40);
+        audioLevelMonitor->setRect(r);
+        addChild(audioLevelMonitor);
+    }
+    
     // フォントをロード
     string fontName;
 #ifdef TARGET_OS_MAC
@@ -93,7 +119,7 @@ void MidiChat::onSetup(){
 #else
     fontName = OF_TTF_SANS;
 #endif
-    ofTrueTypeFontSettings settings(fontName, 32);
+    ofTrueTypeFontSettings settings(fontName, 24);
     settings.addRanges(ofAlphabet::Latin);
     settings.addRanges(ofAlphabet::Japanese);
     settings.addRange(ofUnicode::KatakanaHalfAndFullwidthForms);
@@ -103,19 +129,45 @@ void MidiChat::onSetup(){
     // setup whisper (with api)
    // RtAudio audioTemp(toRtAudio(api));
 
+    // 指定されているオーディオデバイスがあるかどうか
+    bool specifiedAudio = false;
+    string findingDeviceName;
+    try {
+        findingDeviceName = configJson["audio"]["name"];
+        if (findingDeviceName != "") {
+            specifiedAudio = true;
+            ofLogNotice("MidiChat") << "Audio device specified name: " << findingDeviceName;
+        }
+    }
+    catch (exception e) {
+        ofLogWarning("MidiChat") << "Audio not specified";
+    }
+
     whisper.printSoundDevices();
     int soundDeviceID = -1;
-    // search default sound device
+    // 指定されたデバイス名findingDeviceNameに合致するものを探す
+    // 指定がない場合はDefaultを探す
     for (auto device : whisper.getSoundDevices()) {
-        if (device.isDefaultInput) {
+        // 指定がある場合、名前を部分一致で探す
+        if (specifiedAudio) {
+            if (ofIsStringInString(device.name, findingDeviceName)){
+                soundDeviceID = device.deviceID;
+                ofLogNotice("MidiChat") << "Find specified audio device: " << device.name << " id: " << device.deviceID;
+                break;
+            }
+        }
+        // 指定がない場合、デフォルトかどうか判定
+        else if (device.isDefaultInput) {
             soundDeviceID = device.deviceID;
+            ofLogNotice("MidiChat") << "Find default audio device: " << device.name << " id: " << device.deviceID;
             break;
         }
     }
-
-    // if default device is not founded, use first device
+    
+    // if device is not founded, use first device
     if (soundDeviceID == -1 && whisper.getSoundDevices().size() > 0) {
         soundDeviceID = 0;
+        ofLogWarning("MidiChat") << "Audio device not found. Select the first device.";
     }
     
     // if default device is founded, set to whisper
@@ -125,7 +177,7 @@ void MidiChat::onSetup(){
         whisper.setLanguage("ja");
         whisper.setPrompt(R"(音楽のシーケンスを作るための会話をしています。Cメジャー、Bマイナーなどは Cmaj Bmin などと表記してください。音楽のジャンルや演奏のテクニック、コード理論の話もします。)");
 
-        setState(WaitingForUser);
+        setState(Recording);
     }
     else {
         // オーディオデバイスが見つからないときは、エラー表示
@@ -157,7 +209,7 @@ void MidiChat::onUpdate(){
                 sequencerView->setNextSequence(lastMsg->getSequenceStr());
             }
             
-            setState(WaitingForUser);
+            setState(Recording);
         }
         // 失敗していたらInfoObjectを追加
         else {
@@ -209,7 +261,26 @@ void MidiChat::onUpdate(){
     
     // whisper task
     while (whisper.hasTranscript()) {
-        setState(WaitingForChatGPT);
+        string transcript = whisper.getNextTranscript();
+        
+        bool ignore = false;
+        string ignoreMessages[] = {
+            "ご視聴ありがとうございました。",
+            "音楽のジャンルや演奏のテクニック、コード理論の話もします。",
+            "[はじめしゃちょーエンディング]"
+        };
+        for (auto & m: ignoreMessages) {
+            if (transcript == m) {
+                ignore = true;
+            }
+        }
+        if (ignore) {
+            ofLogWarning("MidiChat") << "Ignore Transcript " << transcript;
+        }else {
+            ofLogNotice("MidiChat") << "Transcript " << transcript;
+            addToTranscriptingObject(transcript);
+            
+        }
     }
 }
 
@@ -219,20 +290,15 @@ void MidiChat::onDraw(){
 
 void MidiChat::onKeyPressed(ofKeyEventArgs &key) {
     switch (key.key) {
+        // フットべダルで押す予定のキー, 1つ目
     case ' ':
-        switch (status) {
-        case WaitingForUser:
-            whisper.startRecording();
-            setState(Recording);
-            break;
-            
-        case Recording:
-            setState(WaitingForWhisper);
-            break;
-            
-        default: break;
-        }
+        nextState();
         break;
+        // フットべダルで押す予定のキー, 2つ目
+    case 'n':
+        sequencerView->nextSequenceReady();
+        break;
+        // フットべダルで押す予定のキー, 3つ目
     case OF_KEY_RETURN:
         sequencerView->toggleMidi();
         break;
@@ -241,6 +307,13 @@ void MidiChat::onKeyPressed(ofKeyEventArgs &key) {
         if (sequencerView->getGlobalBpmEnabled()) {
             sequencerView->sendGlobalBpm();
         }
+        break;
+    case 'l':
+        audioLevelMonitor->setActive(!audioLevelMonitor->getActive());
+        break;
+    case OF_KEY_ESC:
+        // Transcriptionを削除
+        if (transcriptingObject) transcriptingObject->destroy();
         break;
     }
 }
@@ -329,51 +402,116 @@ void MidiChat::writeToLogFile(const string& message) {
 }
 
 void MidiChat::setState(MidiChatStatus next) {
+    ofLogNotice("MidiChat") << "Set state " << MidiChatStatusToString(next);
     statusIcon->setStatus(next);
-    status = next;
 
     switch (next) {
-    case WaitingForUser:
+    case Stop:
+        whisper.stopRealtimeRecording();
         break;
     case Recording:
-        whisper.startRecording();
+        whisper.startRealtimeRecording();
         break;
-    case WaitingForWhisper:
-        whisper.stopRecording();
+    case RecordingToChatGPT:
+        transcriptingObject = nullptr;
         break;
     case WaitingForChatGPT:
-        {
-            string newMessage = whisper.getNextTranscript();
-            bool ignore = false;
-            string ignoreMessages[] = {
-                "ご視聴ありがとうございました。",
-                "音楽のジャンルや演奏のテクニック、コード理論の話もします。"
-            };
-            for (auto & m: ignoreMessages) {
-                if (newMessage == m) {
-                    ignore = true;
-                }
-            }
-            if (ignore) {
-                setState(WaitingForUser);
-            }else{
-                sendMessage(newMessage);
-            }
-        }
+        sendTranscriptingObject();
+        // 一旦手放す
+        transcriptingObject = nullptr;
         break;
     default: break;
     }
+
+    status = next;
 }
 
 void MidiChat::onStatusIconClicked() {
+    nextState();
+}
+
+void MidiChat::newTranscriptObject(const string& transcript) {
+    // まだオブジェクトがない場合（最初の発話と、一度MidiChatに送った後の発話）
+    // 新しくオブジェクトを作る。
+    ofJson j; // MessageObjectを作るためのテンプレート
+    j["message"]["role"] = "user";
+    if (status == RecordingToChatGPT) {
+        j["message"]["role"] = "user to assistant";
+    }
+    j["message"]["content"] = transcript;
+    transcriptingObject = make_shared<MessageObject>(j);
+    chatView->addMessageObject(transcriptingObject);
+}
+
+void MidiChat::addToTranscriptingObject(const string& transcript) {
+    if (!transcriptingObject) {
+        newTranscriptObject(transcript);
+    }
+    else {
+        auto textArea = transcriptingObject->getTextArea();
+        if (textArea) {
+            if (textArea->message != "") {
+                // 改行をつけて追加
+                textArea->addStringDelay("\n" + transcript);
+            } else {
+                textArea->addStringDelay(transcript);
+            }
+        } else {
+            ofLogError("MidiChat") << "No TextArea";
+        }
+    }
+}
+
+void MidiChat::sendTranscriptingObject() {
+    // 文字列がまだ入っていない場合は、何もしない
+    if (isTranscriptingObjectEmpty()) {
+        ofLogWarning("MidiChat") << "No transcript";
+        return;
+    }
+    
+    // テキストエリアを取り出して、の文字列を送信
+    auto textArea = transcriptingObject->getTextArea();
+    if (textArea) {
+        ofLogNotice("MidiChat") << "Send Message: " << textArea->message;
+        // chappyに送る
+        chat.chatWithHistoryAsync(textArea->message);
+    } else {
+        // オブジェクトが見つからない場合、Recordingステータスに移行
+        ofLogError("MidiChat") << "No transcriptingObject textArea";
+    }
+}
+
+bool MidiChat::isTranscriptingObjectEmpty() {
+    if (!transcriptingObject) return true;
+    auto ta = transcriptingObject->getTextArea();
+    if (!ta) return true;
+    return ta->message.empty();
+}
+
+void MidiChat::nextState() {
     switch (status) {
-    case WaitingForUser:
+        // 停止中なら音声入力開始
+        // ChatGPTに送るテキストではない
+    case Stop:
         setState(Recording);
         break;
+                
+        // 音声入力中ならChatGPT用に
     case Recording:
-        setState(WaitingForWhisper);
+        setState(RecordingToChatGPT);
         break;
-    default:
+        
+    case RecordingToChatGPT:
+        // transcriptionObjectがあるときだけ次に進む
+        if (!isTranscriptingObjectEmpty()) {
+            setState(WaitingForChatGPT);
+        }
         break;
+        
+    case WaitingForChatGPT:
+        setState(Recording);
+        break;
+        
+    default: break;
     }
 }
