@@ -108,12 +108,13 @@ void StatusIcon::setStatus(MidiChatStatus next) {
     case Recording:
         currentIcon = &micIcon;
         iconColor = ofColor::white;
-        bgColor = ofColor(255, 0, 0);
+        bgColor = ofColor(255, 0, 0); // 赤いマイク
         break;
     case RecordingToChatGPT:
         currentIcon = &micIcon;
         iconColor = ofColor::white;
-        bgColor = ofColor(16, 163, 127);
+        //bgColor = ofColor(16, 163, 127); // ChatGPT色のマイク
+        bgColor = ofColor(255, 0, 0); // 赤いマイク
         break;
     case WaitingForChatGPT:
         currentIcon = &chatgptIcon;

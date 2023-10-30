@@ -70,7 +70,11 @@ void ChatThread::regenerateAsync() {
 
 void ChatThread::cancel() {
     if (!isThreadRunning()) return;
-    
+    // todo
+}
+
+void ChatThread::eraseChatGPTHistory() {
+    chatGPT.eraseAllConversationsWithoutSystem();
 }
 
 tuple<string, ofxChatGPT::ErrorCode> ChatThread::getMessage() {

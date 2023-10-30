@@ -59,6 +59,7 @@ private:
     void addToTranscriptingObject(const string& transcript);
     void sendTranscriptingObject();
     bool isTranscriptingObjectEmpty();
+    
     string gptSystemPrompt;
     
     // スペースキーとクリックに対応

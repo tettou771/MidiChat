@@ -179,7 +179,7 @@ void MidiChat::onSetup(){
         whisper.setLanguage("ja");
         whisper.setPrompt(R"(音楽のシーケンスを作るための会話をしています。Cメジャー、Bマイナーなどは Cmaj Bmin などと表記してください。音楽のジャンルや演奏のテクニック、コード理論の話もします。)");
 
-        setState(Recording);
+        setState(RecordingToChatGPT);
     }
     else {
         // オーディオデバイスが見つからないときは、エラー表示
@@ -196,7 +196,7 @@ void MidiChat::onUpdate(){
         // 成功していたらオブジェクトを追加する
         if (errorCode == ofxChatGPT::Success) {
             ofJson newGPTMsg;
-            newGPTMsg["message"]["role"] = "assistant";
+            newGPTMsg["message"]["role"] = "ChatGPT";
             newGPTMsg["message"]["content"] = gptResponse;
             
             ofLogVerbose("MidiChat") << "GPT: " << newGPTMsg;
@@ -212,7 +212,7 @@ void MidiChat::onUpdate(){
                 sequencerView->setNextSequence(lastMsg->getSequenceStr());
             }
             
-            setState(Recording);
+            setState(RecordingToChatGPT);
         }
         // 失敗していたらInfoObjectを追加
         else {
@@ -282,7 +282,6 @@ void MidiChat::onUpdate(){
         }else {
             ofLogNotice("MidiChat") << "Transcript " << transcript;
             addToTranscriptingObject(transcript);
-            
         }
     }
 }
@@ -334,7 +333,7 @@ void MidiChat::sendMessage(string& message) {
 
     // chat data
     ofJson newUserMsg;
-    newUserMsg["message"]["role"] = "user";
+    newUserMsg["message"]["role"] = "User";
     newUserMsg["message"]["content"] = message;
     chatView->addMessage(newUserMsg, ofColor::gray);
     
@@ -369,6 +368,7 @@ void MidiChat::regenerate() {
 
 void MidiChat::cancel(){
     ofLogNotice("MidiChat") << "Cancel";
+    chat.cancel();
     writeToLogFile("Cancel");
 }
 
@@ -417,6 +417,7 @@ void MidiChat::setState(MidiChatStatus next) {
         transcriptingObject = nullptr;
         break;
     case RecordingToChatGPT:
+        whisper.startRealtimeRecording();
         transcriptingObject = nullptr;
         break;
     case WaitingForChatGPT:
@@ -439,10 +440,10 @@ void MidiChat::newTranscriptObject(const string& transcript) {
     // 新しくオブジェクトを作る。
     ofJson j; // MessageObjectを作るためのテンプレート
     ofColor txtColor = ofColor::white; // 文字の色
-    j["message"]["role"] = "user";
+    j["message"]["role"] = "User";
     // ChatGPTに送る部分だけは、文字色を黄色にする
     if (status == RecordingToChatGPT) {
-        j["message"]["role"] = "user to assistant";
+        j["message"]["role"] = "User to assistant";
         txtColor = ofColor(255, 220, 0);
     }
     j["message"]["content"] = transcript;
@@ -480,6 +481,24 @@ void MidiChat::sendTranscriptingObject() {
     auto textArea = transcriptingObject->getTextArea();
     if (textArea) {
         ofLogNotice("MidiChat") << "Send Message: " << textArea->message;
+        
+        // まっさらな, 作り直す, 新しい曲 などのキーワードが含まれている場合は、
+        // ChatGPTの履歴をリセットする
+        const string resetWords[] = {"まっさらな", "作り直す", "新しい曲"};
+        bool reset = false;
+        for (auto word : resetWords) {
+            if (ofIsStringInString(textArea->message, word)) {
+                reset = true;
+            }
+        }
+
+        if (reset) {
+            chat.eraseChatGPTHistory();
+            // infoにResetしたことを書く
+            auto info = make_shared<InfoObject>("Reset", ofColor(150));
+            chatView->addElement(info);
+        }
+        
         // chappyに送る
         chat.chatWithHistoryAsync(textArea->message);
     } else {
@@ -496,11 +515,14 @@ bool MidiChat::isTranscriptingObjectEmpty() {
 }
 
 void MidiChat::nextState() {
+    // 基本的に、RecordingToChatGPTとここをトグルするだけのステート遷移
+    // Stop, Recordingは不使用
+    
     switch (status) {
         // 停止中なら音声入力開始
         // ChatGPTに送るテキストではない
     case Stop:
-        setState(Recording);
+        setState(RecordingToChatGPT);
         break;
                 
         // 音声入力中ならChatGPT用に
@@ -516,7 +538,7 @@ void MidiChat::nextState() {
         break;
         
     case WaitingForChatGPT:
-        setState(Recording);
+        setState(RecordingToChatGPT);
         break;
         
     default: break;
