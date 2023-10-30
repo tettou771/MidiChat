@@ -202,7 +202,7 @@ void MidiChat::onUpdate(){
             newGPTMsg["message"]["role"] = "ChatGPT";
             newGPTMsg["message"]["content"] = gptResponse;
             
-            ofLogVerbose("MidiChat") << "GPT: " << newGPTMsg;
+            ofLogVerbose("MidiChat") << "ChatGPT: " << newGPTMsg;
             writeToLogFile("GPT:");
             writeToLogFile(gptResponse);
 
@@ -286,8 +286,13 @@ void MidiChat::onUpdate(){
             ofLogNotice("MidiChat") << "Transcript " << transcript;
             addToTranscriptingObject(transcript);
         }
+
+        // Whisper待ちの時、録音中かWhisperからの返答待ちじゃなくなった時に次の状態に自動遷移する
+        // これはユーザーからは見えない遷移
+        if (status == WaitingForWhisper) {
+            nextState();
+        }
     }
-    
 }
 
 void MidiChat::onDraw(){
@@ -351,9 +356,6 @@ void MidiChat::sendMessage(string& message) {
     
     // メッセージを送信
     chat.chatWithHistoryAsync(message);
-
-    writeToLogFile("User:");
-    writeToLogFile(message);
 }
 
 void MidiChat::regenerate() {
@@ -391,13 +393,22 @@ void MidiChat::stopMidi(){
 }
 
 void MidiChat::makeLogFile() {
+    // filename
     auto now = time(nullptr);
     auto tm = *localtime(&now);
     ostringstream timestamp;
     timestamp << put_time(&tm, "%Y-%m-%d_%H%M");
-    string filename = "log/log_" + timestamp.str() + ".txt";
-
-    logFile.open(filename, ofFile::WriteOnly);
+    string fileName = "log_" + timestamp.str() + ".txt";
+    
+    // temp folder
+    char tempPath[PATH_MAX];
+    size_t tempPathSize = confstr(_CS_DARWIN_USER_TEMP_DIR, tempPath, sizeof(tempPath));
+    string tmpFolder = ofToDataPath(string(tempPath) + "MidiChat/log/");
+    
+    // open logFile
+    string filePath = tmpFolder + fileName;
+    ofLogNotice("MidiChat") << "Log file path: " << filePath;
+    logFile.open(filePath, ofFile::WriteOnly);
 }
 
 void MidiChat::writeToLogFile(const string& message) {
@@ -418,7 +429,7 @@ void MidiChat::setState(MidiChatStatus next) {
         break;
     case Recording:
         whisper.startRealtimeRecording();
-        transcriptingObject = nullptr;
+        transcriptingObject = nullptr; // こうすることで、文字起こしを新しいMessageObjectに入れられる
         break;
     case RecordingToChatGPT:
         whisper.startRealtimeRecording();
@@ -426,7 +437,6 @@ void MidiChat::setState(MidiChatStatus next) {
         break;
     case WaitingForChatGPT:
         sendTranscriptingObject();
-        // 一旦手放す
         transcriptingObject = nullptr;
         break;
     default: break;
@@ -483,15 +493,14 @@ void MidiChat::sendTranscriptingObject() {
     
     // テキストエリアを取り出して、の文字列を送信
     auto textArea = transcriptingObject->getTextArea();
+    string sendMessage = textArea->getMessage();
     if (textArea) {
-        ofLogNotice("MidiChat") << "Send Message: " << textArea->message;
-        
         // まっさらな, 作り直す, 新しい曲 などのキーワードが含まれている場合は、
         // ChatGPTの履歴をリセットする
         const string resetWords[] = {"まっさらな", "作り直す", "新しい曲", "やり直し"};
         bool reset = false;
         for (auto word : resetWords) {
-            if (ofIsStringInString(textArea->message, word)) {
+            if (ofIsStringInString(sendMessage, word)) {
                 reset = true;
             }
         }
@@ -504,7 +513,11 @@ void MidiChat::sendTranscriptingObject() {
         }
         
         // chappyに送る
-        chat.chatWithHistoryAsync(textArea->message);
+        chat.chatWithHistoryAsync(sendMessage);
+
+        // ログに残す
+        writeToLogFile("User:");
+        writeToLogFile(sendMessage);
     } else {
         // オブジェクトが見つからない場合、Recordingステータスに移行
         ofLogError("MidiChat") << "No transcriptingObject textArea";
@@ -537,7 +550,14 @@ void MidiChat::nextState() {
     case RecordingToChatGPT:
         // transcriptingObjectがあるときだけ次に進む
         if (!isTranscriptingObjectEmpty()) {
-            setState(WaitingForChatGPT);
+            // 録音中か、whisperの応答待ちの時は、一旦返答がくるのを待つstatusに移行
+            if (whisper.isRecording() || whisper.isThreadRunning()) {
+                setState(WaitingForWhisper);
+            }
+            // 音声系のタスクがなければ直接ChatGPTに送信
+            else {
+                setState(WaitingForChatGPT);
+            }
         }
         break;
         

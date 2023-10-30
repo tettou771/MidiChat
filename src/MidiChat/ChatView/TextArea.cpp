@@ -91,6 +91,17 @@ void TextArea::addStringDelay(const string& str) {
     delayText = true;
 }
 
+string TextArea::getMessage() {
+    // messageはあくまで表示用で、delayさせて表示している時は全文が入っていない場合がある
+    // なので、u32messageを使って全文を取り出している。
+    // また、こちらには表示用の無駄な改行がないからその点でも良い
+    stringstream ss;
+    for (auto c : u32message) {
+        ss << UTF32toUTF8(c);
+    }
+    return ss.str();
+}
+
 void TextArea::clear() {
     message = "";
     u32message = U"";

@@ -116,8 +116,12 @@ void StatusIcon::setStatus(MidiChatStatus next) {
         //bgColor = ofColor(16, 163, 127); // ChatGPT色のマイク
         bgColor = ofColor(255, 0, 0); // 赤いマイク
         break;
-        // 同じアイコン状態
     case WaitingForWhisper:
+        currentIcon = &chatgptIcon;
+        iconColor = ofColor::white;
+        bgColor = ofColor(10, 120, 100);
+        loadingIndicatorNext = true;
+        break;
     case WaitingForChatGPT:
         currentIcon = &chatgptIcon;
         iconColor = ofColor::white;

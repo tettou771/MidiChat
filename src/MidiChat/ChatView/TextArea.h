@@ -14,10 +14,11 @@ public:
     void setStringDelay(const string &str);
     void addString(const string &str);
     void addStringDelay(const string &str);
+    string getMessage(); // 未表示分も含めた全文
     void clear();
     
     static ofTrueTypeFont font;
-    string message; // 適宜改行したmessage
+    string message; // 適宜改行したmessage 表示用
     u32string u32message;
     float startTime;
         
