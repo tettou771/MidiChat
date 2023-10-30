@@ -155,7 +155,7 @@ void MidiChat::onSetup(){
         if (specifiedAudio) {
             if (ofIsStringInString(device.name, findingDeviceName)){
                 soundDeviceIndex = i;
-                ofLogNotice("MidiChat") << "Find specified audio device: " << device.name << " id: " << device.deviceID;
+                ofLogNotice("MidiChat") << "Find specified audio device: " << device.name << " id: " << i;
                 break;
             }
         }
