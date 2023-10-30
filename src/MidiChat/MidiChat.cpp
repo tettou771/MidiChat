@@ -146,36 +146,39 @@ void MidiChat::onSetup(){
     }
 
     whisper.printSoundDevices();
-    int soundDeviceID = -1;
+    int soundDeviceIndex = -1;
     // 指定されたデバイス名findingDeviceNameに合致するものを探す
     // 指定がない場合はDefaultを探す
+    int i = 0;
     for (auto device : whisper.getSoundDevices()) {
         // 指定がある場合、名前を部分一致で探す
         if (specifiedAudio) {
             if (ofIsStringInString(device.name, findingDeviceName)){
-                soundDeviceID = device.deviceID;
+                soundDeviceIndex = i;
                 ofLogNotice("MidiChat") << "Find specified audio device: " << device.name << " id: " << device.deviceID;
                 break;
             }
         }
         // 指定がない場合、デフォルトかどうか判定
         else if (device.isDefaultInput) {
-            soundDeviceID = device.deviceID;
+            soundDeviceIndex = device.deviceID;
             ofLogNotice("MidiChat") << "Find default audio device: " << device.name << " id: " << device.deviceID;
             break;
         }
+        
+        i++;
     }
     
     // if device is not founded, use first device
-    if (soundDeviceID == -1 && whisper.getSoundDevices().size() > 0) {
-        soundDeviceID = 0;
+    if (soundDeviceIndex == -1 && whisper.getSoundDevices().size() > 0) {
+        soundDeviceIndex = 0;
         ofLogWarning("MidiChat") << "Audio device not found. Select the first device.";
     }
     
     // if default device is founded, set to whisper
-    if (soundDeviceID != -1) {
+    if (soundDeviceIndex != -1) {
         whisper.setup(apiKey);
-        whisper.setupRecorder(soundDeviceID);
+        whisper.setupRecorder(soundDeviceIndex);
         whisper.setLanguage("ja");
         whisper.setPrompt(R"(音楽のシーケンスを作るための会話をしています。Cメジャー、Bマイナーなどは Cmaj Bmin などと表記してください。音楽のジャンルや演奏のテクニック、コード理論の話もします。)");
 
@@ -284,6 +287,7 @@ void MidiChat::onUpdate(){
             addToTranscriptingObject(transcript);
         }
     }
+    
 }
 
 void MidiChat::onDraw(){
@@ -294,7 +298,7 @@ void MidiChat::onKeyPressed(ofKeyEventArgs &key) {
     switch (key.key) {
         // フットべダルで押す予定のキー, 1つ目
     case ' ':
-        nextState();
+        changeButtonPressed();
         break;
         // フットべダルで押す予定のキー, 2つ目
     case 'n':
@@ -432,7 +436,7 @@ void MidiChat::setState(MidiChatStatus next) {
 }
 
 void MidiChat::onStatusIconClicked() {
-    nextState();
+    changeButtonPressed();
 }
 
 void MidiChat::newTranscriptObject(const string& transcript) {
@@ -484,7 +488,7 @@ void MidiChat::sendTranscriptingObject() {
         
         // まっさらな, 作り直す, 新しい曲 などのキーワードが含まれている場合は、
         // ChatGPTの履歴をリセットする
-        const string resetWords[] = {"まっさらな", "作り直す", "新しい曲"};
+        const string resetWords[] = {"まっさらな", "作り直す", "新しい曲", "やり直し"};
         bool reset = false;
         for (auto word : resetWords) {
             if (ofIsStringInString(textArea->message, word)) {
@@ -529,7 +533,7 @@ void MidiChat::nextState() {
     case Recording:
         setState(RecordingToChatGPT);
         break;
-        
+                
     case RecordingToChatGPT:
         // transcriptingObjectがあるときだけ次に進む
         if (!isTranscriptingObjectEmpty()) {
@@ -537,6 +541,10 @@ void MidiChat::nextState() {
         }
         break;
         
+    case WaitingForWhisper:
+        setState(WaitingForChatGPT);
+        break;
+
     case WaitingForChatGPT:
         setState(RecordingToChatGPT);
         break;
@@ -544,3 +552,11 @@ void MidiChat::nextState() {
     default: break;
     }
 }
+
+void MidiChat::changeButtonPressed() {
+    // RecordingToChatGPTのときだけ、次に進める
+    if (status == RecordingToChatGPT) {
+        nextState();
+    }
+}
+

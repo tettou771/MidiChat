@@ -116,6 +116,8 @@ void StatusIcon::setStatus(MidiChatStatus next) {
         //bgColor = ofColor(16, 163, 127); // ChatGPT色のマイク
         bgColor = ofColor(255, 0, 0); // 赤いマイク
         break;
+        // 同じアイコン状態
+    case WaitingForWhisper:
     case WaitingForChatGPT:
         currentIcon = &chatgptIcon;
         iconColor = ofColor::white;
@@ -129,6 +131,7 @@ void StatusIcon::setStatus(MidiChatStatus next) {
         break;
     }
 
+    // loadingIndicatorの状態が変わったときだけ、タイミング（クルクルの位相）をリセットする
     if (loadingIndicatorNext && !loadingIndicatorShowing) {
         loadingIndicatorBeginTime = ofGetElapsedTimef();
     }

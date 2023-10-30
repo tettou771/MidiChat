@@ -66,6 +66,9 @@ private:
     // 次の状態に遷移する
     void nextState();
     
+    // ステートをトグルするUI上のボタン
+    void changeButtonPressed();
+    
     string MidiChatStatusToString(const MidiChatStatus &s) {
         switch (s) {
         case Stop: return "Stop";

@@ -9,6 +9,7 @@ enum MidiChatStatus {
     Stop, // 音声入力しない状態
     Recording, // 音声入力中
     RecordingToChatGPT, // ChatGPT用に音声入力中
+    WaitingForWhisper, // Whisperからの返信待ち（返信きたら自動遷移）
     WaitingForChatGPT, // ChatGPTからの返信待ち
     Error // 何らかのエラーで停止
 };
