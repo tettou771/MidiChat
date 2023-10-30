@@ -161,7 +161,7 @@ void MidiChat::onSetup(){
         }
         // 指定がない場合、デフォルトかどうか判定
         else if (device.isDefaultInput) {
-            soundDeviceIndex = device.deviceID;
+            soundDeviceIndex = i;
             ofLogNotice("MidiChat") << "Find default audio device: " << device.name << " id: " << device.deviceID;
             break;
         }
