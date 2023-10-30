@@ -205,7 +205,7 @@ void MidiChat::onUpdate(){
             ofLogVerbose("MidiChat") << "ChatGPT: " << newGPTMsg;
             writeToLogFile("GPT:");
             writeToLogFile(gptResponse);
-
+            
             ofColor gptTxtColor(20, 190, 150);
             chatView->addMessage(newGPTMsg, gptTxtColor);
             
@@ -229,13 +229,13 @@ void MidiChat::onUpdate(){
                 ofLogNotice("MidiChat") << "Delete oldest 2 messages";
                 // 履歴をちょっと消す
                 chat.getChatGPT().eraseConversation(1, 3);
-
+                
                 // regenerate
                 ofLogNotice("MidiChat") << "Regenerate";
                 chatView->deleteLastAssistantMessage();
                 writeToLogFile("Regenerate");
                 chat.regenerateAsync();
-
+                
                 string message = "Regenerating...";
                 auto info = make_shared<InfoObject>(message, ofColor(255, 255, 0));
                 chatView->addElement(info);
@@ -248,7 +248,7 @@ void MidiChat::onUpdate(){
                 chatView->deleteLastAssistantMessage();
                 writeToLogFile("Regenerate");
                 chat.regenerateAsync();
-
+                
                 string message = "Regenerating...";
                 auto info = make_shared<InfoObject>(message, ofColor(255, 255, 0));
                 chatView->addElement(info);
@@ -286,10 +286,12 @@ void MidiChat::onUpdate(){
             ofLogNotice("MidiChat") << "Transcript " << transcript;
             addToTranscriptingObject(transcript);
         }
-
-        // Whisper待ちの時、録音中かWhisperからの返答待ちじゃなくなった時に次の状態に自動遷移する
-        // これはユーザーからは見えない遷移
-        if (status == WaitingForWhisper) {
+    }
+    
+    // Whisper待ちの時、録音中かWhisperからの返答待ちじゃなくなった時に次の状態に自動遷移する
+    // これはユーザーからは見えない遷移
+    if (status == WaitingForWhisper) {
+        if (!whisper.isRecording() && !whisper.isThreadRunning()) {
             nextState();
         }
     }
