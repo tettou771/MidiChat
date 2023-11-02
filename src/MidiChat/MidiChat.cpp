@@ -22,7 +22,8 @@ void MidiChat::onSetup(){
     chatView->setAlign(ListBox::Align::FitWidth); // 要素を幅で合わせる
     auto scrollView = make_shared<ScrollView>(ScrollView::FitWidth);
     int margin = 30;
-    scrollView->setRect(ofRectangle(margin, margin, getWidth() - margin*2, getHeight() - margin - 110));
+    int topOffset = 120;
+    scrollView->setRect(ofRectangle(margin, topOffset, getWidth() - margin*2, getHeight() - margin - topOffset));
     scrollView->setContents(chatView);
     addChild(scrollView);
     
@@ -97,7 +98,8 @@ void MidiChat::onSetup(){
     // status icon
     {
         statusIcon = make_shared<StatusIcon>();
-        ofRectangle r(getWidth()/2 - 40, getHeight() - 120, 80, 80);
+        float size = 80;
+        ofRectangle r((getWidth() - size)/2, (topOffset - size) / 2, size, size);
         statusIcon->setRect(r);
         statusIcon->setWhisper(&whisper);
         ofAddListener(statusIcon->mousePressedOverComponentEvents, this, &MidiChat::onStatusIconClicked);
@@ -107,7 +109,8 @@ void MidiChat::onSetup(){
     // audio level monitor
     {
         audioLevelMonitor = make_shared<AudioLevelMonitor>(&whisper);
-        ofRectangle r(getWidth()/2 + 80, getHeight() - 100, 400, 40);
+        float h = 30;
+        ofRectangle r(getWidth()/2 + 90, (topOffset - h)/2, 500, h);
         audioLevelMonitor->setRect(r);
         addChild(audioLevelMonitor);
     }
