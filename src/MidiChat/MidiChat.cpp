@@ -497,9 +497,9 @@ void MidiChat::sendTranscriptingObject() {
     auto textArea = transcriptingObject->getTextArea();
     string sendMessage = textArea->getMessage();
     if (textArea) {
-        // まっさらな, 作り直す, 新しい曲 などのキーワードが含まれている場合は、
+        // まっさらな, 作り直す, 新しい曲, 全て忘れて などのキーワードが含まれている場合は、
         // ChatGPTの履歴をリセットする
-        const string resetWords[] = {"まっさらな", "作り直す", "新しい曲", "やり直し"};
+        const string resetWords[] = {"まっさらな", "真っさら", "作り直す", "作り直して", "新しい曲", "やり直し", "全て忘れて", "すべて忘れて"};
         bool reset = false;
         for (auto word : resetWords) {
             if (ofIsStringInString(sendMessage, word)) {
