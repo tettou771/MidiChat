@@ -339,6 +339,22 @@ void MidiChat::onLocalMatrixChanged() {
     setHeight(ofGetHeight());
 }
 
+void MidiChat::onDragEvent(ofDragInfo& info) {
+    for (auto &path : info.files) {
+        auto file = ofFile(path);
+        if (file.getExtension() == "txt" && file.exists()) {
+            ofLogNotice("MidiChat") << "Replace system with \"" << file.path() << "\"";
+            ofBuffer buffer = file.readToBuffer();
+            gptSystemPrompt = buffer.getText();
+            chat.setSystemMessage(gptSystemPrompt);
+            
+            // infoにSystemを書き換えたことを書く
+            auto info = make_shared<InfoObject>("Replace system with \"" + file.getFileName() + "\"", ofColor(150));
+            chatView->addElement(info);
+        }
+    }
+}
+
 void MidiChat::sendMessage(string& message) {
     if (message == "") return;
     

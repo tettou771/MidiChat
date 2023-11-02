@@ -41,6 +41,7 @@ bool ChatThread::hasMessage() {
 }
 
 void ChatThread::setSystemMessage(string msg) {
+    chatGPT.removeSystem();    
     chatGPT.setSystem(msg);
 }
 

@@ -17,6 +17,7 @@ public:
 	void onDraw() override;
     void onKeyPressed(ofKeyEventArgs &key) override;
     void onLocalMatrixChanged() override;
+    void onDragEvent(ofDragInfo&) override;
 
     shared_ptr<SequencerView> sequencerView;
     shared_ptr<ChatView> chatView;

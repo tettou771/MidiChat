@@ -14,6 +14,7 @@ public:
     bool hasMessage();
 
     // Register a system message
+    // すでにあったら置き換える
     void setSystemMessage(string msg);
 
     // If a request is already in progress, calls to chatAsync, chatWithHistoryAsync, 
@@ -35,7 +36,7 @@ public:
     // ChatGPTの履歴を一旦消してまっさらな気持ちになる
     // Systemメッセージだけは残す
     void eraseChatGPTHistory();
-
+    
     // If a message is available, it can be retrieved
     // Retrieved messages are removed from the list
     tuple<string, ofxChatGPT::ErrorCode> getMessage();
