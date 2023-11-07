@@ -39,18 +39,27 @@ void MidiChat::onSetup(){
     tie(models, err) = chappy.getModelList();
     ofLogNotice("MidiChat") << "Available OpenAI GPT models:";
     string model = "gpt-3.5-turbo"; // default model
+    string targetModel = model;
+    // もしconfigに文字があり、実際に該当モデルがあればそれを使う
+    try {
+        string configGptModel = configJson["gpt-model"];
+        if (configGptModel == "") {
+            ofLogNotice("MidiChat") << "gpt-model in config.json is empty.";
+        }
+        else {
+            targetModel = configGptModel;
+        }
+    }
+    catch (exception e) {
+        ofLogNotice("MidiChat") << "No gpt-model in config.json.";
+    }
+    ofLogNotice("MidiChat") << "GPT Model Target: " << targetModel;
+    
     for (auto m : models) {
         // GPT系のモデルだけをリストアップ
-        /*
-        if (ofIsStringInString(m, "gpt")) {
-            ofLogNotice("MidiChat") << m;
-            if (m == "gpt-3.5-turbo-16k") model = "gpt-3.5-turbo-16k";
-        }
-*/
-        // もしgpt-4があればそれを使う
-        if (ofIsStringInString(m, "gpt")) {
-            ofLogNotice("MidiChat") << m;
-            if (m == "gpt-4") model = "gpt-4";
+            if (ofIsStringInString(m, "gpt")) {
+                ofLogNotice("MidiChat") << m;
+                if (m == targetModel) model = targetModel;
         }
     }
     
@@ -182,6 +191,7 @@ void MidiChat::onSetup(){
     if (soundDeviceIndex != -1) {
         whisper.setup(apiKey);
         whisper.setupRecorder(soundDeviceIndex);
+        whisper.setRrSilenceTimeMax(0.7);
         whisper.setLanguage("ja");
         whisper.setPrompt(R"(音楽のシーケンスを作るための会話をしています。Cメジャー、Bマイナーなどは Cmaj Bmin などと表記してください。音楽のジャンルや演奏のテクニック、コード理論の話もします。)");
 

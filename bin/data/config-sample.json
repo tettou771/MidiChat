@@ -1,8 +1,12 @@
 {
 	"apiKey":"your-api-key",
+    "gpt-model": "",
     "osc": {
         "enabled": false,
         "address": "192.168.0.255",
         "port": "16064"
+    },
+    "audio": {
+        "name": ""
     }
 }
