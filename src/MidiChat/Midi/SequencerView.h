@@ -119,6 +119,9 @@ private:
 	vector<shared_ptr<Onpu> > onpus;
 	void updateDrawObjectsPosotion();
     ofMutex onpuMutex;
+    
+    // Readyなどを表示するフォント
+    ofTrueTypeFont font;
 
     // パーサ
     vector<int> shortenChordNotation(string& noteStr) {

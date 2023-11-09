@@ -24,6 +24,8 @@ P:C1i,C#1i,D1i,D#1i,E1i,F1i,F#1i,G1i|G#1i,A1i,A#1i,B1i,C2i,C#2i,D2i,D#2i
 	}
     
     ofAddListener(Thumbnail::selectedEvents, this, &SequencerView::setNextSequence);
+    
+    font.load(OF_TTF_SANS, 30);
         
 	startLoop();
 }
@@ -94,18 +96,41 @@ void SequencerView::onDraw() {
 
     ofDrawBitmapString(ss.str(), 4, 20);
     
-    // 次のシーケンスがあったら、枠を点滅
-    if (hasNextMidiJson && fmod(ofGetElapsedTimef(), 0.8) < 0.4) {
+    // 次のシーケンスがあったら、枠を点滅させる
+    if (hasNextMidiJson) {
         ofPushStyle();
+        
+        float t = fmod(phase * numMeasures, 1);
+        float alpha = ofMap(cos(t * TAU), -0.7, 1, 0, 255, true);
+        
+        ofColor readyColor(200);
+        ofColor awaitingColor(0, 255, 0);
 
-        // 次に移行する場合は緑
-        if (nextSequenceReadyFlag) ofSetColor(0, 255, 0);
-        // 単に、新しいシーケンスが来ているよというサインは白
-        else ofSetColor(200);
+        // Ready 移行する準備ができている場合
+        if (!nextSequenceReadyFlag) ofSetColor(readyColor, alpha);
+        // Awaiting 移行直前の場合
+        else ofSetColor(awaitingColor, alpha);
         
         ofNoFill();
-        ofSetLineWidth(6); // 太めの線でわかりやすくする
-        ofDrawRectangle(0, 0, getWidth(), getHeight());
+        int lw = 6;
+        ofSetLineWidth(lw); // 太めの線でわかりやすくする
+        ofDrawRectangle(lw/2, lw/2, getWidth() - lw, getHeight() - lw);
+        
+        // Readyなどのテキスト
+        string statusStr = "";
+        if (!nextSequenceReadyFlag) {
+            statusStr = "Ready";
+            ofSetColor(readyColor);
+        }
+        else {
+            statusStr = "Awaiting";
+            ofSetColor(awaitingColor);
+        }
+        
+        auto bbox = font.getStringBoundingBox(statusStr, 0, 0);
+        float margin = 20;
+        font.drawString(statusStr, getWidth() - bbox.width - margin, font.getSize() + margin);
+
         ofPopStyle();
     }
 }
