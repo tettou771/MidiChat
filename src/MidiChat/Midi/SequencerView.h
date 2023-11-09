@@ -57,6 +57,8 @@ public:
 
 	int getSequenceCount() { return sequenceCount; }
 	bool getSentThisFrame() { bool b = sentOsc; sentOsc = false; return b; }
+    
+    float getBpm() {return bpm;}
 
 private:
 	float now; // 今の時刻

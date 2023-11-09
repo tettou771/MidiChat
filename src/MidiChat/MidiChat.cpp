@@ -75,6 +75,15 @@ void MidiChat::onSetup(){
     // セットする
     chat.setup(model, apiKey);
     chat.setSystemMessage(gptSystemPrompt);
+
+    // タイムアウト秒数
+    try {
+        float timeoutSec = configJson["gpt-timeout"];
+        chat.getChatGPT().setTimeoutSec(timeoutSec);
+    }
+    catch(exception e) {
+        
+    }
     
     // OSCを使うかどうか確認
     if (configJson.find("osc") != configJson.end() && configJson["osc"].is_object()) {
@@ -453,6 +462,7 @@ void MidiChat::writeToLogFile(const string& message) {
 void MidiChat::setState(MidiChatStatus next) {
     ofLogNotice("MidiChat") << "Set state " << MidiChatStatusToString(next);
     statusIcon->setStatus(next);
+    statusIcon->setBpm(sequencerView->getBpm());
 
     switch (next) {
     case Stop:
@@ -465,6 +475,8 @@ void MidiChat::setState(MidiChatStatus next) {
     case RecordingToChatGPT:
         whisper.startRealtimeRecording();
         transcriptingObject = nullptr;
+        break;
+    case WaitingForWhisper:
         break;
     case WaitingForChatGPT:
         sendTranscriptingObject();

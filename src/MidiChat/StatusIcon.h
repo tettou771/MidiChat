@@ -21,6 +21,7 @@ public:
     void setStatus(MidiChatStatus next);
     void setWhisper(ofxWhisper *w);
     void whisperAudioEvent(ofxWhisper::AudioEventArgs& args);
+    void setBpm(float _bpm) {bpm = _bpm;}
     
 private:
     MidiChatStatus status;
@@ -35,4 +36,7 @@ private:
     // オーディオレベル表示
     float level;
     bool isRecording = false;
+    
+    // bpmに合わせてロードアテンションを動かす
+    float bpm;
 };
