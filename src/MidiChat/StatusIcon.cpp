@@ -12,9 +12,14 @@ void StatusIcon::onStart() {
 
 void StatusIcon::onDraw() {
     // circle
-    ofSetColor(bgColor);
-    ofFill();
+    
+    // サウンドのレベルでアイコンを明滅
+    float alpha = ofMap(level, 0.02, 0.1, 110, 255, true);
     ofSetCircleResolution(40);
+    ofFill();
+    ofSetColor(0);
+    ofDrawCircle(getWidth()/2, getHeight()/2, getWidth()/2);
+    ofSetColor(bgColor, alpha);
     ofDrawCircle(getWidth()/2, getHeight()/2, getWidth()/2);
     // draw outline (antialiasing)
     ofNoFill();
@@ -228,14 +233,14 @@ void StatusIcon::setStatus(MidiChatStatus next) {
     case Recording:
         currentIcon = &micIcon;
         iconColor = ofColor::white;
-        bgColor = ofColor(200, 10, 10); // 赤いマイク
+        bgColor = ofColor(255, 0, 0); // 赤いマイク
         break;
     case RecordingToChatGPT:
         // loadingIndicatorNext = true; // debug インジケータの確認用
         currentIcon = &micIcon;
         iconColor = ofColor::white;
         //bgColor = ofColor(16, 163, 127); // ChatGPT色のマイク
-        bgColor = ofColor(200, 10, 10); // 赤いマイク
+        bgColor = ofColor(255, 0, 0); // 赤いマイク
         break;
     case WaitingForWhisper:
         currentIcon = &chatgptIcon;
