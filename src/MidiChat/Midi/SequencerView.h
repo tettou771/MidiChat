@@ -26,11 +26,11 @@ public:
 	void onUpdate() override;
 	void onDraw() override;
 	void onLocalMatrixChanged() override;
+    void onDestroy() override;
 
     void setupOscReceiver(int port);
 	void setupOscSender(const string& addr, const int& port);
     void setupBroadcast(const string& addr, const int& port);
-	void startLoop();
 	void threadedFunction() override;
 	float getFps();
     
@@ -201,7 +201,34 @@ private:
 		std::map<char, int> intensityValues = { {'a', 18}, {'b', 36}, {'c', 54}, {'d', 73}, {'e', 91}, {'f', 109}, {'g', 127} };
 		return intensityValues[intensity];
 	}
+    
+    vector<std::string> parseLines(std::istringstream& iss) {
+        std::vector<std::string> lines;
+        std::string line, currentLine;
 
+        while (std::getline(iss, line)) {
+            // 英字とコロンで始まる行かどうかをチェック
+            if (!line.empty() && isalpha(line[0]) && line.size() > 1 && line[1] == ':') {
+                // 新しい行が始まったら、現在の行を保存
+                if (!currentLine.empty()) {
+                    lines.push_back(currentLine);
+                    currentLine.clear();
+                }
+                currentLine = line; // 新しい行を現在の行としてセット
+            } else {
+                // 新しい行が始まるまで現在の行に結合
+                currentLine += line;
+            }
+        }
+
+        // 最後の行を追加
+        if (!currentLine.empty()) {
+            lines.push_back(currentLine);
+        }
+
+        return lines;
+    }
+    
 	void makeNotes(const std::string& sequenceStr, std::vector<Note>& notes, float& bpm) {
 		istringstream iss(sequenceStr);
 		string line;
@@ -210,13 +237,20 @@ private:
         beatNumerator = 4;
         beatDenominator = 4;
         numMeasures = 4;
+        
+        // 実際に入っていた小節の数
+        // これが numMeasures と食い違っていたら、強制的に numMeasures に代入する
+        int realNumMeasuresMax = 0;
 
 		// bpm default
 		bpm = 100;
 
 		sequenceLengthMs = 0;
 
-		while (std::getline(iss, line)) {
+        // 行を配列に入れる
+        auto lines = parseLines(iss);
+        
+		for (auto &line: lines) {
 			if (line.length() < 2) {
 				continue;
 			}
@@ -337,8 +371,16 @@ private:
 
                 currentTimeMs = measureNum * 60000. * beatNumerator / bpm;
             } // measure end
-		}
+            
+            // 区切りの数を数える
+            realNumMeasuresMax = MAX(measureNum, realNumMeasuresMax);
+		} // part end
 
+        // もし、実際の小節数が与えられ得た小節数の3/2倍以上あったら実際の方に合わせる
+        if (numMeasures > realNumMeasuresMax * 3 / 2) {
+            numMeasures = realNumMeasuresMax;
+        }
+        
 		// 小節の数がシーケンス全体の長さになる
 		sequenceLengthMs = 60000. * numMeasures * beatNumerator / bpm;
 	}

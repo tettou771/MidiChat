@@ -11,23 +11,37 @@ SequencerView::~SequencerView() {
 }
 
 void SequencerView::onStart() {
+    fps = 0;
+    futureSec = 0.1;
+    pastUpdatedTime = ofGetElapsedTimef();
+    phase = 0;
+    sequenceTime = 0;
+    pastSequenceTime = -1; // 再生開始時にゼロ秒のnoteを再生するためにマイナスの値にしておく
+    sequenceCount = 0;
+    numMeasures = 4;
+    beatNumerator = 4;
+    beatDenominator = 4;
+
 	// make dummy data
 	{
         string dummyStr = R"(
-t:4,4,4
-b:130
-M:C5i,D5,E5,F5,G5,A5,G5,F5|E5,D5,C5,D5,E5,F5,E5,D5|C5,D5,E5,F5,G5,A5,G5,F5|E5,D5,C5,D5,E5,F5,E5,D5
-P:C1i,C#1i,D1i,D#1i,E1i,F1i,F#1i,G1i|G#1i,A1i,A#1i,B1i,C2i,C#2i,D2i,D#2i
+t:4,4,16
+b:120
+M:C4e,G3i,A3s,G3s,F3i,E3q,D3i,E3i,F3s,G3i,A2w|C4i,E4s,G4s,F4s,E4i,D4s,C4i,B3q,A3h|G3q,A3i,B3i,C4i,D4i,E4i,F4s,G4i,A3q,G3|F3i,E3s,D3i,C3s,B2i,A2s,G2i,F2s,E2q,R|
+B2h,C3i,D3s,C3s,B2i,A2q,G2i,A2i,B2s,C3i,D3e,E3s,F3i,G3i,A2w|C4i,E4s,G4s,F4s,E4i,D4s,C4i,B3q,A3h|G3q,A3i,B3i,C4i,D4i,E4i,F4s,G4i,A3q,G3|F3i,E3s,D3i,C3s,B2i,A2s,G2i,F2s,E2q,R|
+C:Fmaj7q,G7,Cmaj7,E7|Ami7,D7,Gmaj7,C7|Fmaj7,Bb7,Ebmaj7,Ab7|Dmi7,G7,Cmaj7,A7|
+Dmi7,G7,Cmaj7,F7|Bb7,Eb7,Abmaj7,D7|Gmi7,C7,Fmaj7,Bb7|Ebmaj7,Ab7,Dmi7,G7|
+P:C2f,E2,R,R|C2,E2,R,R|G2,C2,R,R|C2,E2,R,R|G2,C2,R,R|C2,E2,R,R|G2,C2,R,R|C2,E2,R,R
 )";
         
-        //setCurrentSequence(dummyStr);
+        //setCurrentSequence(dummyStr); // debug
 	}
     
     ofAddListener(Thumbnail::selectedEvents, this, &SequencerView::setNextSequence);
     
     font.load(OF_TTF_SANS, 30);
         
-	startLoop();
+	startThread();
 }
 
 void SequencerView::onUpdate() {
@@ -138,6 +152,9 @@ void SequencerView::onDraw() {
 void SequencerView::onLocalMatrixChanged() {
 }
 
+void SequencerView::onDestroy() {
+}
+
 void SequencerView::setupOscReceiver(int port) {
     oscReceiver.setup(port);
 }
@@ -151,21 +168,6 @@ void SequencerView::setupOscSender(const string& addr, const int& port) {
 void SequencerView::setupBroadcast(const string& addr, const int& port) {
     // setup OSC
     oscBroadcastSender.setup(addr, port);
-}
-
-void SequencerView::startLoop() {
-	fps = 0;
-	futureSec = 0.1;
-	pastUpdatedTime = ofGetElapsedTimef();
-	phase = 0;
-	sequenceTime = 0;
-	pastSequenceTime = -1; // 再生開始時にゼロ秒のnoteを再生するためにマイナスの値にしておく
-	sequenceCount = 0;
-    numMeasures = 4;
-    beatNumerator = 4;
-    beatDenominator = 4;
-
-	startThread();
 }
 
 void SequencerView::threadedFunction() {
@@ -252,6 +254,7 @@ void SequencerView::setCurrentSequence(string& sequenceStr) {
     
     // set sequence data
     notesMutex.lock();
+        
     notes.clear();
 
     // notes作成
