@@ -23,7 +23,7 @@ void AudioLevelMonitor::onDraw() {
     ofDrawRectangle(0, 0, r.width, r.height);
 
     // level bar with color
-    isRecording ? ofSetColor(200, 0, 0) : ofSetColor(0, 200, 0);
+    isRecording ? ofSetColor(120, 0, 0) : ofSetColor(0, 110, 0);
     ofDrawRectangle(0, 0, r.width * l, r.height);
 
     // threshold

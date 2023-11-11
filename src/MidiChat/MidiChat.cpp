@@ -127,7 +127,7 @@ void MidiChat::onSetup(){
     // audio level monitor
     {
         audioLevelMonitor = make_shared<AudioLevelMonitor>(&whisper);
-        float h = 30;
+        float h = 20;
         ofRectangle r(getWidth()/2 + 90, (topOffset - h)/2, 500, h);
         audioLevelMonitor->setRect(r);
         addChild(audioLevelMonitor);
@@ -202,7 +202,7 @@ void MidiChat::onSetup(){
         whisper.setupRecorder(soundDeviceIndex);
         whisper.setRrSilenceTimeMax(0.7);
         whisper.setLanguage("ja");
-        whisper.setPrompt(R"(音楽のシーケンスを作るための会話をしています。Cメジャー、Bマイナーなどは Cmaj Bmin などと表記してください。音楽のジャンルや演奏のテクニック、コード理論の話もします。)");
+        whisper.setPrompt(R"(音楽のシーケンスを作るための会話をしています。Cメジャー、Bマイナーなどは Cmaj Bmin などと表記してください。音楽のジャンルや演奏のテクニック、コード理論の話もします。言楽器)");
 
         setState(RecordingToChatGPT);
     }
@@ -294,6 +294,7 @@ void MidiChat::onUpdate(){
         bool ignore = false;
         string ignoreMessages[] = {
             "ご視聴ありがとうございました。",
+            "ご覧いただきありがとうございます。",
             "音楽のジャンルや演奏のテクニック、コード理論の話もします。",
             "[はじめしゃちょーエンディング]"
         };
@@ -498,10 +499,8 @@ void MidiChat::newTranscriptObject(const string& transcript) {
     ofJson j; // MessageObjectを作るためのテンプレート
     ofColor txtColor = ofColor::white; // 文字の色
     j["message"]["role"] = "User";
-    // ChatGPTに送る部分だけは、文字色を黄色にする
     if (status == RecordingToChatGPT) {
         j["message"]["role"] = "User to assistant";
-        txtColor = ofColor(255, 220, 0);
     }
     j["message"]["content"] = transcript;
     transcriptingObject = make_shared<MessageObject>(j, txtColor);
