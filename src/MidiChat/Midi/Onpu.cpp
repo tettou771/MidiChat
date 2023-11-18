@@ -13,7 +13,7 @@ void Onpu::onStart() {
 
 void Onpu::onDraw() {
     // 音符の色相はchannelに応じる
-    float h = 255 * (137 * noteOn.channel % 360) / 360;
+    float h = 255 * (141 * noteOn.channel % 360) / 360;
     // 音符の明度は再生中かどうかによる
     float b = isPlaying ? 140 : 100;
     // 彩度は固定

@@ -54,7 +54,14 @@ public:
     shared_ptr<AudioLevelMonitor> audioLevelMonitor;
     void onStatusIconClicked();
     
+    // 位置、サイズを適宜揃える
+    void updateComponentPositions();
+    
 private:
+    // viewなど、リサイズのハンドリングをするオブジェクト
+    shared_ptr<ScrollView> scrollView;
+    shared_ptr<FitView> scrollView2;
+    
     shared_ptr<MessageObject> transcriptingObject = nullptr;
     void newTranscriptObject(const string& transcript);
     void addToTranscriptingObject(const string& transcript);

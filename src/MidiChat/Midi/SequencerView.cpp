@@ -33,8 +33,8 @@ C:Fmaj7q,G7,Cmaj7,E7|Ami7,D7,Gmaj7,C7|Fmaj7,Bb7,Ebmaj7,Ab7|Dmi7,G7,Cmaj7,A7|
 Dmi7,G7,Cmaj7,F7|Bb7,Eb7,Abmaj7,D7|Gmi7,C7,Fmaj7,Bb7|Ebmaj7,Ab7,Dmi7,G7|
 P:C2f,E2,R,R|C2,E2,R,R|G2,C2,R,R|C2,E2,R,R|G2,C2,R,R|C2,E2,R,R|G2,C2,R,R|C2,E2,R,R
 )";
-        
-        setCurrentSequence(dummyStr); // debug
+
+        //setCurrentSequence(dummyStr); // debug
 	}
     
     ofAddListener(Thumbnail::selectedEvents, this, &SequencerView::setNextSequence);
@@ -136,6 +136,7 @@ void SequencerView::onDraw() {
 }
 
 void SequencerView::onLocalMatrixChanged() {
+    updateDrawObjectsPosotion();
 }
 
 void SequencerView::onDestroy() {
@@ -234,50 +235,7 @@ void SequencerView::setCurrentSequence(string& sequenceStr) {
     
     // onpu(note)作成
     makeNotes(currentSequenceStr, onpus, bpm);
-    
-    
-    // 描画用の音符を作る
-    /*
-     onpuMutex.lock();
-    vector<shared_ptr<Onpu> > currentOnpu;
-    for (auto &note : notes) {
-        if (note.midiStatus == MIDI_NOTE_ON) {
-            bool founded = false;
-            for (auto onpu : currentOnpu) {
-                if (onpu->begin == &note) {
-                    founded = true;
-                    break;
-                }
-            }
-            if (!founded) {
-                currentOnpu.push_back(make_shared<Onpu>());
-                currentOnpu.back()->begin = &note;
-            }
-        }
-        else if (note.midiStatus == MIDI_NOTE_OFF) {
-            for (int i=0; i < currentOnpu.size(); ++i) {
-                auto onpu = currentOnpu[i];
-                if (onpu->begin &&
-                    onpu->begin->pitch == note.pitch &&
-                    onpu->begin->channel == note.channel) {
-                    onpu->end = &note;
-                    onpu->sequenceLengthMs = sequenceLengthMs;
-                    onpus.push_back(onpu);
-                    addChild(onpu);
-                    currentOnpu.erase(currentOnpu.begin() + i);
-                    break;
-                }
-            }
-        }
-    }
-    
-    onpuMutex.unlock();
-     */
-    
-    // シークバーを最後に描画するために最後尾につける
-    if (!seekBar) seekBar = make_shared<SeekBar>();
-    addChild(seekBar);
-    
+        
     updateDrawObjectsPosotion();
 }
 
@@ -450,6 +408,9 @@ void SequencerView::updateDrawObjectsPosotion() {
     for (auto onpu:onpus) {
         onpu->updateSize();
     }
+    // シークバーを最後に描画するために最後尾につける
+    if (!seekBar) seekBar = make_shared<SeekBar>();
+    addChild(seekBar);
     seekBar->setHeight(getHeight());
 }
 

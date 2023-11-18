@@ -1,5 +1,4 @@
 #include "ofApp.h"
-#include "MidiChat/MidiChat.h"
 
 //--------------------------------------------------------------
 void ofApp::setup(){
@@ -13,7 +12,7 @@ void ofApp::setup(){
     
     componentManager = make_shared<ofxComponentManager>();
     
-    auto midiChat = make_shared<MidiChat>();
+    midiChat = make_shared<MidiChat>();
     componentManager->addChild(midiChat);
     componentManager->setup();
 }
@@ -70,7 +69,8 @@ void ofApp::mouseExited(int x, int y){
 
 //--------------------------------------------------------------
 void ofApp::windowResized(int w, int h){
-
+    // windowサイズ変更時に、componentのサイズを合わせる
+    midiChat->setRect(ofRectangle(0, 0, w, h));
 }
 
 //--------------------------------------------------------------

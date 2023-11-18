@@ -1,7 +1,8 @@
-﻿#pragma once
+#pragma once
 
 #include "ofMain.h"
 #include "ofxComponent.h"
+#include "MidiChat/MidiChat.h"
 
 using namespace ofxComponent;
 
@@ -25,5 +26,5 @@ class ofApp : public ofBaseApp{
 		void gotMessage(ofMessage msg);
     
     shared_ptr<ofxComponentManager> componentManager;
-		
+    shared_ptr<MidiChat> midiChat;		
 };

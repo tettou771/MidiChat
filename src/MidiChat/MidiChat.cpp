@@ -12,7 +12,7 @@ void MidiChat::onSetup(){
     
     // show fit view
     sequencerView = make_shared<SequencerView>();
-    auto scrollView2 = make_shared<FitView>();
+    scrollView2 = make_shared<FitView>();
     scrollView2->setRect(ofRectangle(0, 0, getWidth(), getHeight()));
     scrollView2->setContents(sequencerView);
     addChild(scrollView2);
@@ -20,7 +20,7 @@ void MidiChat::onSetup(){
     // show in scroll view
     chatView = make_shared<ChatView>();
     chatView->setAlign(ListBox::Align::FitWidth); // 要素を幅で合わせる
-    auto scrollView = make_shared<ScrollView>(ScrollView::FitWidth);
+    scrollView = make_shared<ScrollView>(ScrollView::FitWidth);
     int margin = 30;
     int topOffset = 120;
     scrollView->setRect(ofRectangle(margin, topOffset, getWidth() - margin*2, getHeight() - margin - topOffset));
@@ -210,6 +210,8 @@ void MidiChat::onSetup(){
         // オーディオデバイスが見つからないときは、エラー表示
         setState(Error);
     }
+    
+    updateComponentPositions();
 }
 
 void MidiChat::onUpdate(){
@@ -369,8 +371,7 @@ void MidiChat::onKeyPressed(ofKeyEventArgs &key) {
 }
 
 void MidiChat::onLocalMatrixChanged() {
-    setWidth(ofGetWidth());
-    setHeight(ofGetHeight());
+    updateComponentPositions();
 }
 
 void MidiChat::onDragEvent(ofDragInfo& info) {
@@ -509,6 +510,30 @@ void MidiChat::setState(MidiChatStatus next) {
 
 void MidiChat::onStatusIconClicked() {
     changeButtonPressed();
+}
+
+void MidiChat::updateComponentPositions() {
+    if (!scrollView2) return;
+    scrollView2->setRect(ofRectangle(0, 0, getWidth(), getHeight()));
+
+    int margin = 30;
+    int topOffset = 120;
+    scrollView->setRect(ofRectangle(margin, topOffset, getWidth() - margin*2, getHeight() - margin - topOffset));
+
+    // status icon
+    {
+        float size = 80;
+        ofRectangle r((getWidth() - size)/2, (topOffset - size) / 2, size, size);
+        statusIcon->setRect(r);
+    }
+    
+    // audio level monitor
+    {
+        float h = 20;
+        ofRectangle r(getWidth()/2 + 90, (topOffset - h)/2, 500, h);
+        audioLevelMonitor->setRect(r);
+    }
+    
 }
 
 void MidiChat::newTranscriptObject(const string& transcript) {
