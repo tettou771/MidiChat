@@ -91,8 +91,6 @@ private:
 	bool hasNextMidiJson = false;
 	float bpm, sequenceLengthMs;
     int beatNumerator, beatDenominator, numMeasures;
-	vector<Note> notes;
-	ofMutex notesMutex; // 排他制御
 
 	// MIDIのシーケンスを次に変えるためのメソッド
 	// ループの最後にやる
@@ -119,6 +117,7 @@ private:
 	vector<shared_ptr<Onpu> > onpus;
 	void updateDrawObjectsPosotion();
     ofMutex onpuMutex;
+    void noteOffCurrentOnpus();
     
     // Readyなどを表示するフォント
     ofTrueTypeFont font;
@@ -229,8 +228,16 @@ private:
         return lines;
     }
     
-	void makeNotes(const std::string& sequenceStr, std::vector<Note>& notes, float& bpm) {
-		istringstream iss(sequenceStr);
+	void makeNotes(const string& sequenceStr, vector<shared_ptr<Onpu> >& onpus, float& bpm) {
+        onpuMutex.lock();
+        // すでにある描画用の音符を削除
+        for (auto onpu : onpus) {
+            onpu->destroy();
+        }
+        onpus.clear();
+        onpuMutex.unlock();
+        
+        istringstream iss(sequenceStr);
 		string line;
 
 		// a/b拍子 n小節
@@ -348,16 +355,22 @@ private:
                     // R は休符なのでNoteを作らない
                     if (!(note.length() == 0) && note[0] != 'R') {
                         // 微妙にランダムに遅延させる msec
-                        float delay = ofRandom(35);
+                        float delay = ofRandom(50);
                         
                         float noteLengthMs = noteLengthToMilliseconds(length, bpm);
                         int pitch = noteToMidiPitch(note, octave);
                         int channel = partTypeToMidiChannel(partType);
                         int velocity = intensityToMidiVelocity(intensity);
                         
+                        // コードなら複数作成される
                         for (auto offset : offsets) {
-                            notes.push_back(Note(currentTimeMs + delay, MIDI_NOTE_ON, pitch + offset, velocity, channel));
-                            notes.push_back(Note(currentTimeMs + noteLengthMs, MIDI_NOTE_OFF, pitch + offset, velocity, channel));
+                            // onpuを生成
+                            auto newOnpu = make_shared<Onpu>(currentTimeMs + delay, noteLengthMs - delay, pitch + offset, velocity, channel);
+                            addChild(newOnpu);
+
+                            onpuMutex.lock();
+                            onpus.push_back(newOnpu);
+                            onpuMutex.unlock();
                         }
                     }
 
@@ -386,6 +399,9 @@ private:
         
 		// 小節の数がシーケンス全体の長さになる
 		sequenceLengthMs = 60000. * numMeasures * beatNumerator / bpm;
+        
+        // 全ての音符にそれを教える
+        Onpu::sequenceLengthMs = sequenceLengthMs;
 	}
 };
 

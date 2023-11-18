@@ -7,6 +7,7 @@ using namespace ofxComponent;
 // GM音源に対応したnote
 class Note {
 public:
+    Note(){};
     Note(float time, MidiStatus midiStatus, unsigned char pitch, unsigned char velocity, unsigned char channel);
     MidiStatus midiStatus;
     float timeMs;

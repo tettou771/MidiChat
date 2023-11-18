@@ -34,7 +34,7 @@ Dmi7,G7,Cmaj7,F7|Bb7,Eb7,Abmaj7,D7|Gmi7,C7,Fmaj7,Bb7|Ebmaj7,Ab7,Dmi7,G7|
 P:C2f,E2,R,R|C2,E2,R,R|G2,C2,R,R|C2,E2,R,R|G2,C2,R,R|C2,E2,R,R|G2,C2,R,R|C2,E2,R,R
 )";
         
-        //setCurrentSequence(dummyStr); // debug
+        setCurrentSequence(dummyStr); // debug
 	}
     
     ofAddListener(Thumbnail::selectedEvents, this, &SequencerView::setNextSequence);
@@ -48,16 +48,6 @@ void SequencerView::onUpdate() {
     // シーク
     float x = phase * getWidth();
     if (seekBar) seekBar->setPos(x, 0);
-    
-    // 踏んでいる音符にフラグを立てる
-    int sequenceTimeMs = sequenceTime * 1000;
-    onpuMutex.lock();
-    for (auto onpu : onpus) {
-        bool playing = onpu->begin->timeMs <= sequenceTimeMs &&
-        sequenceTimeMs < onpu->end->timeMs;
-        onpu->isPlaying = playing;
-    }
-    onpuMutex.unlock();
 }
 
 void SequencerView::onDraw() {
@@ -96,11 +86,7 @@ void SequencerView::onDraw() {
         ss << "BPM " << ofToString(bpm, 0) << endl;
     }
     ss << "Beat " << beatNumerator << "/" << beatDenominator << " " << numMeasures << "beats" << endl;
-    
-    notesMutex.lock();
-    ss << "Note " << notes.size() << endl;
-    notesMutex.unlock();
-    
+        
     onpuMutex.lock();
     ss << "Onpu " << onpus.size() << endl;
     onpuMutex.unlock();
@@ -210,13 +196,7 @@ void SequencerView::stopMidi() {
     phase = 0;
     
     // 今再生中のノートをオフにする
-    onpuMutex.lock();
-    for (auto onpu : onpus) {
-        if (!onpu->isPlaying) continue;
-        sendNote(onpu->end->midiMessage);
-        onpu->isPlaying = false;
-    }
-    onpuMutex.unlock();
+    noteOffCurrentOnpus();
 }
 
 void SequencerView::toggleMidi() {
@@ -252,23 +232,13 @@ void SequencerView::setCurrentSequence(string& sequenceStr) {
     
     currentSequenceStr = sequenceStr;
     
-    // set sequence data
-    notesMutex.lock();
-        
-    notes.clear();
-
-    // notes作成
-    makeNotes(currentSequenceStr, notes, bpm);
+    // onpu(note)作成
+    makeNotes(currentSequenceStr, onpus, bpm);
     
-    onpuMutex.lock();
-    
-    // すでにある描画用の音符を削除
-    for (auto onpu : onpus) {
-        onpu->destroy();
-    }
-    onpus.clear();
     
     // 描画用の音符を作る
+    /*
+     onpuMutex.lock();
     vector<shared_ptr<Onpu> > currentOnpu;
     for (auto &note : notes) {
         if (note.midiStatus == MIDI_NOTE_ON) {
@@ -302,19 +272,13 @@ void SequencerView::setCurrentSequence(string& sequenceStr) {
     }
     
     onpuMutex.unlock();
+     */
     
     // シークバーを最後に描画するために最後尾につける
     if (!seekBar) seekBar = make_shared<SeekBar>();
     addChild(seekBar);
     
     updateDrawObjectsPosotion();
-    
-    // メモリ解放
-    for (auto onpu:currentOnpu) {
-        onpu->destroy();
-    }
-    
-    notesMutex.unlock();
 }
 
 void SequencerView::openMidi() {
@@ -393,15 +357,20 @@ void SequencerView::midiLoop() {
     float sequenceLength = sequenceLengthMs / 1000;
 
 	if (sequenceLengthMs > 0) {
-        notesMutex.lock();
-		for (auto& note : notes) {
-			float notetime = note.timeMs / 1000;
-			if (pastSequenceTime < notetime &&
-				notetime <= MIN(sequenceTime, sequenceLength)) {
-                sendNote(note.midiMessage);
-			}
-		}
-        notesMutex.unlock();
+        onpuMutex.lock();
+        for (auto& onpu : onpus) {
+            for (auto *note : {&onpu->noteOn, &onpu->noteOff}) {
+                float notetime = note->timeMs / 1000;
+                if (pastSequenceTime < notetime &&
+                    notetime <= MIN(sequenceTime, sequenceLength)) {
+                    sendNote(note->midiMessage);
+                    
+                    // onpuが再生中かどうかのフラグ管理
+                    onpu->isPlaying = (note->midiStatus == MIDI_NOTE_ON);
+                }
+            }
+        }
+        onpuMutex.unlock();
 
         // シーケンスの終わりと始まりを跨いでいたら、sequenceTimeをループの最初に戻す
         // そして、ループの最初のあたりの音を踏んでいたら鳴らす
@@ -414,14 +383,8 @@ void SequencerView::midiLoop() {
                 changeToNextSequence();
             }
 
-            notesMutex.lock();
-            for (auto& note : notes) {
-				float notetime = note.timeMs / 1000;
-				if (notetime <= sequenceTime) {
-                    sendNote(note.midiMessage);
-				}
-			}
-            notesMutex.unlock();
+            // 今再生中のonpuがあればそれを止める
+            noteOffCurrentOnpus();
 		}
 	}
     // シーケンスが何もない時
@@ -488,4 +451,15 @@ void SequencerView::updateDrawObjectsPosotion() {
         onpu->updateSize();
     }
     seekBar->setHeight(getHeight());
+}
+
+void SequencerView::noteOffCurrentOnpus() {
+    // 再生中の音符を停止する
+    onpuMutex.lock();
+    for (auto onpu : onpus) {
+        if (!onpu->isPlaying) continue;
+        sendNote(onpu->noteOff.midiMessage);
+        onpu->isPlaying = false;
+    }
+    onpuMutex.unlock();
 }

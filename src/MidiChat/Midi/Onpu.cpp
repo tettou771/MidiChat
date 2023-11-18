@@ -1,12 +1,19 @@
 #include "Onpu.h"
 
+float Onpu::sequenceLengthMs;
+
+Onpu::Onpu(float time, float length, unsigned char pitch, unsigned char velocity, unsigned char channel) {
+    noteOn = Note(time, MIDI_NOTE_ON, pitch, velocity, channel);
+    noteOff = Note(time + length, MIDI_NOTE_OFF, pitch, velocity, channel);
+}
+
 void Onpu::onStart() {
     updateSize();
 }
 
 void Onpu::onDraw() {
     // 音符の色相はchannelに応じる
-    float h = 255 * (137 * begin->channel % 360) / 360;
+    float h = 255 * (137 * noteOn.channel % 360) / 360;
     // 音符の明度は再生中かどうかによる
     float b = isPlaying ? 140 : 100;
     // 彩度は固定
@@ -23,9 +30,9 @@ void Onpu::onDraw() {
     // 音符の種類
     ofSetColor(200);
     stringstream name;
-    name << "P " << (int)begin->pitch;
-    name << "\nV " << (int)begin->velocity;
-    name << "\nC " << (int)begin->channel;
+    name << "P " << (int)noteOn.pitch;
+    name << "\nV " << (int)noteOn.velocity;
+    name << "\nC " << (int)noteOn.channel;
     ofDrawBitmapString(name.str(), 2, 15);
 }
 
@@ -33,13 +40,13 @@ void Onpu::updateSize() {
     auto p = getParent();
     if (!p) return;
     ofRectangle rect;
-    rect.x = p->getWidth() * (float)begin->timeMs / (float)sequenceLengthMs;
-    rect.width = p->getWidth() * ((float)end->timeMs - (float)begin->timeMs) / (float)sequenceLengthMs;
+    rect.x = p->getWidth() * (float)noteOn.timeMs / (float)sequenceLengthMs;
+    rect.width = p->getWidth() * ((float)noteOff.timeMs - (float)noteOn.timeMs) / (float)sequenceLengthMs;
 
     // ピッチあたりの高さ
     float pitchHeight = p->getHeight() / pitchNum;
 
-    rect.y = p->getHeight() - (begin->pitch) * pitchHeight;
+    rect.y = p->getHeight() - (noteOn.pitch) * pitchHeight;
     rect.height = pitchHeight;
 
     setRect(rect);

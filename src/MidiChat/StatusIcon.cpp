@@ -243,9 +243,9 @@ void StatusIcon::setStatus(MidiChatStatus next) {
         bgColor = ofColor(255, 0, 0); // 赤いマイク
         break;
     case WaitingForVoice:
-        currentIcon = &chatgptIcon;
+        currentIcon = &micIcon;
         iconColor = ofColor::white;
-        bgColor = ofColor(255, 0, 0); // 赤いChatGPTロゴ
+        bgColor = ofColor(255, 0, 0); // 赤いマイク
         loadingIndicatorNext = true;
         break;
     case WaitingForWhisper:
