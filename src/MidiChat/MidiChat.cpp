@@ -309,12 +309,26 @@ void MidiChat::onUpdate(){
             ofLogNotice("MidiChat") << "Transcript " << transcript;
             addToTranscriptingObject(transcript);
         }
+
+        // whisper待ちだったら、1つ目の応答で即次のstateに遷移する
+        if (status == WaitingForWhisper) {
+            if (!whisper.isThreadRunning()) {
+                nextState();
+            }
+        }
     }
     
-    // Whisper待ちの時、録音中かWhisperからの返答待ちじゃなくなった時に次の状態に自動遷移する
-    // これはユーザーからは見えない遷移
+    // 録音停止待ちの時、Whisper待ちに移行する
+    if (status == WaitingForVoice) {
+        if (!whisper.isRecording()) {
+            nextState();
+        }
+    }
+    // Whisper待ちの時、Whisperからの返答待ちじゃなくなった時に次の状態に自動遷移する
+    // ただし、whidper.hasTranscript() のところでほとんどの場合ハンドリングされるが、
+    // whisperに投げなかった場合や、whisperのタイムアウト時はこちらでハンドリングすることになる
     if (status == WaitingForWhisper) {
-        if (!whisper.isRecording() && !whisper.isThreadRunning()) {
+        if (!whisper.isThreadRunning()) {
             nextState();
         }
     }
@@ -477,7 +491,11 @@ void MidiChat::setState(MidiChatStatus next) {
         whisper.startRealtimeRecording();
         transcriptingObject = nullptr;
         break;
+    case WaitingForVoice:
+        // update内で録音状態を判定して次に移行する
+        break;
     case WaitingForWhisper:
+        // update内でWhisperの状態を判定して次に移行する
         break;
     case WaitingForChatGPT:
         sendTranscriptingObject();
@@ -592,8 +610,12 @@ void MidiChat::nextState() {
     case RecordingToChatGPT:
         // transcriptingObjectがあるときだけ次に進む
         if (!isTranscriptingObjectEmpty()) {
-            // 録音中か、whisperの応答待ちの時は、一旦返答がくるのを待つstatusに移行
-            if (whisper.isRecording() || whisper.isThreadRunning()) {
+            // 録音中の時はそれが止まるのを待つ
+            if (whisper.isRecording())  {
+                setState(WaitingForVoice);
+            }
+            // whisperの応答待ちの時は、一旦返答がくるのを待つstatusに移行
+            else if (whisper.isThreadRunning()) {
                 setState(WaitingForWhisper);
             }
             // 音声系のタスクがなければ直接ChatGPTに送信
@@ -601,6 +623,10 @@ void MidiChat::nextState() {
                 setState(WaitingForChatGPT);
             }
         }
+        break;
+        
+    case WaitingForVoice:
+        setState(WaitingForWhisper);
         break;
         
     case WaitingForWhisper:

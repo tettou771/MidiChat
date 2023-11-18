@@ -242,16 +242,22 @@ void StatusIcon::setStatus(MidiChatStatus next) {
         //bgColor = ofColor(16, 163, 127); // ChatGPT色のマイク
         bgColor = ofColor(255, 0, 0); // 赤いマイク
         break;
+    case WaitingForVoice:
+        currentIcon = &chatgptIcon;
+        iconColor = ofColor::white;
+        bgColor = ofColor(255, 0, 0); // 赤いChatGPTロゴ
+        loadingIndicatorNext = true;
+        break;
     case WaitingForWhisper:
         currentIcon = &chatgptIcon;
         iconColor = ofColor::white;
-        bgColor = ofColor(10, 120, 100);
+        bgColor = ofColor(16, 100, 180); // 青いロゴ
         loadingIndicatorNext = true;
         break;
     case WaitingForChatGPT:
         currentIcon = &chatgptIcon;
         iconColor = ofColor::white;
-        bgColor = ofColor(16, 163, 127);
+        bgColor = ofColor(16, 163, 127); // 緑のロゴ
         loadingIndicatorNext = true;
         break;
     case Error:

@@ -347,13 +347,16 @@ private:
                     
                     // R は休符なのでNoteを作らない
                     if (!(note.length() == 0) && note[0] != 'R') {
+                        // 微妙にランダムに遅延させる msec
+                        float delay = ofRandom(35);
+                        
                         float noteLengthMs = noteLengthToMilliseconds(length, bpm);
                         int pitch = noteToMidiPitch(note, octave);
                         int channel = partTypeToMidiChannel(partType);
                         int velocity = intensityToMidiVelocity(intensity);
                         
                         for (auto offset : offsets) {
-                            notes.push_back(Note(currentTimeMs, MIDI_NOTE_ON, pitch + offset, velocity, channel));
+                            notes.push_back(Note(currentTimeMs + delay, MIDI_NOTE_ON, pitch + offset, velocity, channel));
                             notes.push_back(Note(currentTimeMs + noteLengthMs, MIDI_NOTE_OFF, pitch + offset, velocity, channel));
                         }
                     }
